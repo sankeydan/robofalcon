@@ -52,11 +52,11 @@ for ( i in 1:length(files)){
   library(robofalcon)
   
   #files/folders
-  folder.f = file.path( PROJHOME , "Data" , "rawXYT", "falcon")
+  folder.f = file.path( PROJHOME , "Data" , "Falcon")
   folder.p  = file.path( PROJHOME , "Output" , "tGPS")
   files.p = list.files(folder.p)
   files.f = list.files(folder.f)
-      folderDS ( c("Output", "gGPS", "site-radius", paste0("site-radius",site.radius) ))
+      folderDS ( c("Output", "gGPS", paste0("site-radius",site.radius) ))
       folderDS ( c("Output", "gGPS", "pre-flight"))
   if( pfs){
     folder.out = file.path( PROJHOME , "Output" , "gGPS", "pre-flight")
@@ -189,7 +189,7 @@ for ( i in 1:length(files)){
 site.xy = c( lon = median(site.estimates[9:nrow(site.estimates),1]),
              lat = median(site.estimates[9:nrow(site.estimates),2]))
 
-save (site.xy , file = file.path(PROJHOME , "Data", "metadata", "site-xy.rda"))
+save (site.xy , file = file.path(PROJHOME , "metadata", "site-xy.rda"))
 
 list ( cc = site.xy ,
        training =  c( lon = median(site.estimates[1:8,1]),
@@ -217,7 +217,7 @@ list ( cc = site.xy ,
   pred.files = which( spl[,2] == "p")
   
   # metadata
-  load( file.path(PROJHOME ,"Data" ,"metadata" , "site-xy.rda"))
+  load( file.path(PROJHOME ,"metadata" , "site-xy.rda"))
   
   # empty objects
   predxy = matrix(NA, 0,3)
@@ -261,20 +261,20 @@ for ( i in pred.files){
 
 
 # PLOTS
-
-# Relationship between predator's distance to site and distance to group
-p2ps = as.data.frame(p2ps)
-library(ggplot2)
-g1 = ggplot( p2ps, aes ( y = d2p , x = pred2site))+
-  geom_point()+
-  xlab ("Distance from predator to release site (m)")+
-  ylab ("Distance from predator to flock centroid (m)")
-
-# Predator trajectory on the map
-key.code = register_ggmap(install = T)
-g2 = plot_map(predxy, type = "solo" ,zoom =16, centre = site.xy, lines.or.points = "points")
-
-gridExtra::grid.arrange(g1,g2,ncol = 2)
+# 
+# # Relationship between predator's distance to site and distance to group
+# p2ps = as.data.frame(p2ps)
+# library(ggplot2)
+# g1 = ggplot( p2ps, aes ( y = d2p , x = pred2site))+
+#   geom_point()+
+#   xlab ("Distance from predator to release site (m)")+
+#   ylab ("Distance from predator to flock centroid (m)")
+# 
+# # Predator trajectory on the map
+# key.code = register_ggmap(install = T)
+# g2 = plot_map(predxy, type = "solo" ,zoom =16, centre = site.xy, lines.or.points = "points")
+# 
+# gridExtra::grid.arrange(g1,g2,ncol = 2)
 ```
 
 
@@ -307,7 +307,7 @@ gridExtra::grid.arrange(g1,g2,ncol = 2)
 }
 
 # loop
-for ( i in 9:
+for ( i in 1:
       length(files)){
      # 14){
   #i=17
@@ -434,6 +434,7 @@ for ( i in 9:
   
   
   # save
+  folderDS ( c("Output", "DataRemovedOutliers"))
   save( data.list, file = file.path ( PROJHOME , "Output", "DataRemovedOutliers", files[i]))
   
   # takestock
@@ -441,6 +442,7 @@ for ( i in 9:
 }
 
 # save subgroups
+folderDS(c("Output","subgrouping"))
 save( subgroups , file = file.path (PROJHOME , "Output", "subgrouping" , "subgroup.rda"))
 
 
@@ -457,6 +459,7 @@ library(stringr)
 
 # files/folders 
 fold = file.path(PROJHOME , "Output", "gGPS", "site-radius700")
+folderDS( c("Output", "gGPS", "site-radius500"))
 fold.f = file.path(PROJHOME, "Output", "DataRemovedOutliers")
 files = list.files(fold)
 
@@ -486,8 +489,165 @@ for (  i in 1:length(files)){
     save( data     , file = file.path (PROJHOME , "Output", "gGPS", "site-radius500", files[i]))
     
   }
-  print(cbind(dim(data),dim(fis)))
   
+}
+```
+
+
+# What is the autocorrelation of turning angles, speed, centr. acc,  
+
+```{r}
+
+{ # skip to loop
+  
+  # housekeeping
+  rm(list = ls())
+  
+  # objects 
+  plott = F
+  
+  # libraries
+  library(robofalcon)
+  
+  # files / folders 
+  fold = file.path(PROJHOME, "Output", "DataRemovedOutliers")
+  files = list.files(fold)
+  
+  # empty objects
+  aeps.turn = vector()
+  aeps.speed= vector()
+  aeps.centrip = vector()
+  aeps.speedvar = vector()
+  aeps.d2c = vector() 
+  aeps.nn1 = vector()
+}
+
+# loop
+for ( i in 9:length(files)){
+  #i=9
+  
+  # data
+  load( file.path(fold, files[i]))
+  data = data.list[[2]]
+  dims = dim(data)
+  
+  # obj for speedvar
+  speed.mat= matrix(NA,(dims[1]),dims[3])
+  
+  for (j in 1:dims[3]){
+    #j=1
+    
+    # focal heading and turning decisions.
+    focal_head = get_heading(data[,"lon",j],data[,"lat",j])
+    diff_head = turnang(data[,,j])
+    alpha = 0.95
+    ts =na.omit( diff_head)
+    
+    # speed
+    speed1 = get_dist(data[,"lon",j],data[,"lat",j],hz = 5,method = "speed")
+    speed.mat[,j] = speed1
+    speed = na.omit(speed1)
+    
+    # centripetal
+    turn.radius = speed1 / diff_head
+    centrip = speed1^2 / turn.radius
+    
+    # autocorrelation
+    ts.acf <- acf(na.omit(ts),plot = plott, lag.max = 50)
+    conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+    aep = which(ts.acf$acf < conf.lim)[1]
+    aeps.turn = na.omit(c(aeps.turn,aep))
+    
+    ts.acf <- acf(na.omit(speed),plot = plott, lag.max = 50)
+    conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+    aep = which(ts.acf$acf < conf.lim)[1]
+    aeps.speed = na.omit(c(aeps.speed,aep))
+    
+    ts.acf <- acf(na.omit(centrip),plot = plott, lag.max = 50)
+    conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+    aep = which(ts.acf$acf < conf.lim)[1]
+    aeps.centrip = na.omit(c(aeps.centrip,aep))
+    
+  }
+  
+  # speed variance
+  speed.var = apply(speed.mat,1, function(x){
+    x [ x<5 ]= NA
+    x [ x>33]=NA
+    sd(x,na.rm = T)/mean(x,na.rm = T)})
+  ts.acf <- acf(na.omit(speed.var),plot = plott, lag.max = 50)
+  conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+  aep = which(ts.acf$acf < conf.lim)[1]
+  aeps.speedvar = na.omit(c(aeps.speedvar,aep))
+  
+  # flock cohesion
+  dist2cent = d2c( data)
+  nn  = near_nei(data)[[2]]
+  d2c = na.omit(rowMeans( dist2cent , na.rm =  T))
+  nn1 = na.omit(rowMeans( nn,na.rm=T))
+  
+  ts.acf <- acf(d2c,plot = plott, lag.max = 50)
+  conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+  aep = which(ts.acf$acf < conf.lim)[1]
+  aeps.d2c = na.omit(c(aeps.d2c,aep))
+  
+  ts.acf <- acf(nn1,plot = plott, lag.max = 50)
+  conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+  aep = which(ts.acf$acf < conf.lim)[1]
+  aeps.nn1 = na.omit(c(aeps.nn1,aep))
+  
+}
+
+{
+  #pdf( file.path (PROJHOME , "Figures", "Stats" , "Autocorrelation", "autocor.pdf"))
+  
+  par(mfrow= c(3,2))
+  hist(aeps.turn/5,breaks = 50, xlim =c(0,10), main = "Turn angle", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  abline( v = median(aeps.turn)/5, lty = 2)
+  list(shapiro.test(aeps.turn),
+       median(aeps.turn),
+       median(aeps.turn/5))
+  
+  hist(aeps.speed/5,breaks = 50,xlim =c(0,10), main = "Speed", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  abline( v = median(aeps.speed)/5, lty = 2)
+  list(shapiro.test(aeps.speed),
+       median(aeps.speed),
+       median(aeps.speed/5))
+  
+  hist(aeps.speedvar/5,breaks = 50,xlim =c(0,10), main = "Speed variance", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  abline( v = median(aeps.speedvar)/5, lty = 2)
+  list(shapiro.test(aeps.speedvar),
+       median(aeps.speedvar),
+       median(aeps.speedvar/5))
+  
+  hist(aeps.centrip/5,breaks = 50,xlim =c(0,10), main = "Centripetal acceleration", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  abline( v = median(aeps.centrip)/5, lty = 2)
+  list(shapiro.test(aeps.centrip),
+       median(aeps.centrip),
+       median(aeps.centrip/5))
+  
+    hist(aeps.d2c/5,breaks = 50,xlim =c(0,10), main = "Distance to centroid", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  a= mean(aeps.d2c)/5
+  b= 0.2  
+  c= round(a/b)*b
+  abline( v = c, lty = 2)
+  list(shapiro.test(aeps.d2c),
+       median(aeps.d2c),
+       median(aeps.d2c/5),
+       mean(aeps.d2c),
+       mean(aeps.d2c/5))
+  
+    hist(aeps.nn1/5,breaks = 50,xlim =c(0,10), main = "Nearest neighbour distance", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+      a= mean(aeps.nn1)/5
+  b= 0.2  
+  c= round(a/b)*b
+  abline( v = c, lty = 2)
+  list(shapiro.test(aeps.nn1),
+       median(aeps.nn1),
+       median(aeps.nn1/5),
+       mean(aeps.nn1),
+       mean(aeps.nn1/5))
+  #dev.off()
 }
 ```
 
@@ -535,5 +695,288 @@ if ( !file.exists(file.path( PROJHOME , "Figures", "fission_maps", "fission-maps
     dev.off()
   }
 }
+```
+
+
+
+# Big matrix of movement desisions, and potential covariates which predict it.
+
+Run this script with only.remaining.indivs = T and = F
+
+```{R}
+
+{ # skip to loop
+  
+  # housekeeping
+  rm(list = ls())
+  
+  # libraries
+  library(robofalcon)
+  library(stringr)
+  library(plyr)
+  library(circular)
+  
+  
+  # objects
+  only.small.groups = F
+  only.remaining.indivs = T
+  
+  # files / folders 
+  fold = file.path(PROJHOME, "Output", "gGPS" , "site-radius500")
+  fold.remain = file.path(PROJHOME, "Output", "DataRemovedOutliers")
+  files = list.files(fold)
+  files.f=list.files(fold.remain)
+  splitstring = str_split_fixed(files, "\\.",12)
+  
+  # metadata
+  load( file.path( PROJHOME ,  "metadata" , "home-coordinates.rda"))
+  load(file.path ( PROJHOME ,  "metadata" , "metadata-combinedPredLoft.rda"))
+  
+  #manip objects 
+  splitstring = str_split_fixed(files, "\\." , 9)
+  condition = splitstring[,2]
+  splitstring = as.data.frame(splitstring)
+  names(splitstring) = c("flight.id", as.character(2:ncol(splitstring)))
+  if ( only.small.groups){
+    whi.big = which(splitstring[,4] == 5)
+    files = files[-whi.big]
+    condition = condition[-whi.big]
+    splitstring = splitstring[-whi.big,]
+  }
+  
+  # empty objects
+  aeps = vector()
+  bigmatrix = matrix(NA,0,10)
+  m = 1
+  li = list()
+}
+
+# loop
+for ( i in 9:length(files)){ # discounted earlier flights due to large differences in terrain, see Methods
+  #i=21
+  
+  {
+    # data
+    load( file.path(fold, files[i]))
+    if( condition[i] == "p"){
+      # data = data.list[[1]]
+      falc = data.list[[2]]
+    } 
+    load( file.path(fold.remain, files[i]))
+    data.remain = data.list[[1]]
+    data.all    = data.list[[2]]
+    if( only.remaining.indivs){
+      data= data.remain
+    } else {
+      data = data.all
+    }
+    
+    dims = dim(data)
+    
+    # near neighbours 
+    nn = near_nei(data)
+    heads = apply( data, 3, function(x){
+      get_heading(x[,"lon"],x[,"lat"])
+    })
+    heads.remain = apply( data.remain, 3, function(x){
+      get_heading(x[,"lon"],x[,"lat"])
+    })
+    
+    # centroid
+    centroid = d2c(data,return_centorid = T)
+    d2cent = d2c(data)
+    
+    # metadata
+    md   =merge ( splitstring[i,], meta, by = "flight.id")
+  }
+  
+  for (j in 1:dims[3]){
+    #j=1
+    
+    # metadata
+    temp.data   =md[rep(1, dims[1]),c('condition','small.big','ind.flight','wind.direct.site', 'group.num','wind.speed.site','flight.time','Date')]
+    temp.data$pigeon = dimnames(data)[[3]][j]
+    
+    # support and cross wind
+    speed = get_dist(data[,"lon",j],
+                     data[,"lat",j], hz = 5, method = "speed")
+    temp.data$speed = speed
+    if ( i > 8){
+      as.s = air_speed(data[,1:2,j],
+                       wind.direct = md$wind.direct.site,
+                       wind.speed  = md$wind.speed.site ,
+                       speed, 
+                       return.support.cross = T)
+      temp.data$support.wind =  as.s[[2]]
+      temp.data$cross.wind   =  as.s[[3]]
+    }
+    
+    # focal heading and turning decisions. autocorrelation
+    focal_head = get_heading(data[,"lon",j],data[,"lat",j])
+    temp.data$focal_head = focal_head
+    temp.data$diff_head = turnang(data[,,j])
+    
+    # lon lat
+    temp.data$lon = data[,"lon",j]
+    temp.data$lat = data[,"lat",j]
+    
+    # dist 2 cent
+    temp.data$dist2cent = d2cent[,j]
+    
+    # turn angle to home
+    ang2home = get_heading( data[,"lon",j],
+                            data[,"lat",j],
+                            home$lon,
+                            home$lat,indivs = 2)
+    temp.data$turn2home = atan2(sin(ang2home-focal_head), cos(ang2home-focal_head))
+    
+    # turn angle to predator position, turn to pred head
+    if ( condition[i] == "p"){
+      
+      # falcon's relative position
+      ang2falcpos = get_heading( data[,"lon",j],
+                                 data[,"lat",j],
+                                 falc[,"lon"],
+                                 falc[,"lat"],indivs = 2)
+      temp.data$turn2falcpos = atan2(sin(ang2falcpos-focal_head),
+                                     cos(ang2falcpos-focal_head))
+      # falcon's relative heading
+      falc_head = get_heading(falc[,"lon"],falc[,"lat"])
+      temp.data$turn2falchead = atan2(sin(falc_head-focal_head),
+                                      cos(falc_head-focal_head))
+      # distance to falcon
+      temp.data$dist2pred = get_dist(data[,"lon",j],data[,"lat",j],falc[,"lon"],falc[,"lat"], method = "distance")
+      
+    } else {
+      temp.data$turn2falcpos  = NA
+      temp.data$turn2falchead = NA
+      temp.data$dist2pred = NA
+    }
+    
+    # distance to home 
+    temp.data$dist2home = get_dist(data[,"lon",j],data[,"lat",j],home$lon,home$lat,method = "distance")
+    
+    # near neighbours 
+    nn.dist = nn[[1]] 
+    nn.name = nn[[3]]
+    cent.head = nns.centroid.heading( data = data,
+                                      heads = heads,
+                                      data.remain= data.remain,
+                                      heads.remain = heads.remain,
+                                      nn.name = nn.name,
+                                      j = j,
+                                      num.nei = 33,
+                                      whole.group = T )
+    temp.data = cbind( temp.data, cent.head)
+    temp.data$nn1dist = nn[[2]][,j]
+    
+    # dist2site
+    temp.data$dist2site =  get_dist(data[,"lon",j],data[,"lat",j],centroid[1,"lon"],centroid[1,"lat"], method = "distance")
+    
+    # big.matrix
+    temp.data$unique.flight = m
+    li[[m]] = temp.data
+    m = m+1
+  }
+  
+  # takestock
+  print(paste ( i, "/" , length(files)))
+}
+
+# convert to dataframe
+{
+  dat = ldply (li)
+  dat.num = dat
+  for ( i in 1:ncol(dat)){
+    dat.num[,i] = suppressWarnings(as.numeric(as.character(dat[,i])))
+    if ( length(which(!is.na(dat.num[,i]))) == 0){
+      dat.num[,i] = as.character(dat[,i])
+    }
+  }
+  dat = dat.num
+}
+
+# save
+
+if ( only.remaining.indivs){
+save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
+} else {
+  save( dat, file = file.path(PROJHOME, "gitData", "ALLrobofalcon-data.rda" ))
+}
+
+# take a look
+head(dat)
+```
+
+
+# time lags 
+
+Run this script with only.remaining.indivs = T and = F
+
+```{R}
+# housekeeping
+rm(list = ls())
+
+# objects
+only.remaining.indivs = T
+
+# files/folders
+if( only.remaining.indivs ){
+load( file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
+} else {
+  load( file.path ( PROJHOME , "gitData", "ALLrobofalcon-data.rda"))
+}
+    
+# each unique bird/flight ends here.
+li = list()
+m=1
+fli = c( 0, which(diff(dat$unique.flight) == 1),nrow(dat))
+lags = seq(-5,2,1)
+
+for ( i  in 1:(length(fli)-1)){
+  #i = 1
+  d = dat[(fli[i]+1):fli[i+1],]
+  lagmat = matrix(NA,nrow(d),ncol=length(lags),
+                  dimnames = list(NULL,paste0("lag",lags)))
+  lagmat[,"lag0"] = d$diff_head
+  
+  for ( j in 1:length(lags) ){
+    # j = 3
+    k = lags[j]
+    if ( sign(k) == -1){
+      lagmat[,j] =  c(d$diff_head[(-k + 1):nrow(d)],rep(NA,-k))
+    }
+    if ( sign(k) == 1 ){
+      lagmat[,j] = c(rep(NA,k),d$diff_head[1:(nrow(d)-k)])
+    }
+  }
+  # save
+  d = cbind( d, lagmat)
+  li[[i]] = d
+}
+
+
+# convert to dataframe
+{
+  dat = ldply (li)
+  dat.num = dat
+  for ( i in 1:ncol(dat)){
+    dat.num[,i] = suppressWarnings(as.numeric(as.character(dat[,i])))
+    if ( length(which(!is.na(dat.num[,i]))) == 0){
+      dat.num[,i] = as.character(dat[,i])
+    }
+  }
+  dat = dat.num
+}
+
+#save
+if ( only.remaining.indivs){
+save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
+} else {
+  save( dat, file = file.path(PROJHOME, "gitData", "ALLrobofalcon-data.rda" ))
+}
+
+# take a look
+head(dat)
 ```
 
