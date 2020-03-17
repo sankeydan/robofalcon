@@ -17,9 +17,11 @@ library(stringr)
 library(robofalcon)
 
 # files / folders 
-fold  = file.path( PROJHOME , "Output" , "rawdata2")
+fold  = file.path( PROJHOME , "Data" , "pigeon")
 files = list.files(fold)
+folderDS (c("Output", "tGPS"))
 
+#loop
 for ( i in 1:length(files)){
   #i=155
   load( file.path( fold, files[i]))
@@ -48,13 +50,14 @@ for ( i in 1:length(files)){
   #libraries
   library(stringr)
   library(robofalcon)
-  library(collEcol)
   
   #files/folders
   folder.f = file.path( PROJHOME , "Data" , "rawXYT", "falcon")
   folder.p  = file.path( PROJHOME , "Output" , "tGPS")
   files.p = list.files(folder.p)
   files.f = list.files(folder.f)
+      folderDS ( c("Output", "gGPS", "site-radius", paste0("site-radius",site.radius) ))
+      folderDS ( c("Output", "gGPS", "pre-flight"))
   if( pfs){
     folder.out = file.path( PROJHOME , "Output" , "gGPS", "pre-flight")
   } else {
