@@ -1,0 +1,536 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#1. Trim data (tGPS())
+#2. Group GPS and add falcon data
+#3. Finding optimal site radius
+#4. Trim data by defined site radius
+
+
+# Trim data (tGPS())
+```{R}
+
+# libraries
+library(stringr)
+library(robofalcon)
+
+# files / folders 
+fold  = file.path( PROJHOME , "Output" , "rawdata2")
+files = list.files(fold)
+
+for ( i in 1:length(files)){
+  #i=155
+  load( file.path( fold, files[i]))
+  dat = data
+  data = tGPS( dat  , plot_traj =F)
+  save( data, file = file.path(PROJHOME , "Output" , "tGPS" , files[i]))
+  print( paste( i , "/" , length(files)))
+}
+```
+
+# Group GPS and add falcon data
+
+```{R}
+{ # skip to loop 
+  
+  #housekeeping
+  rm(list=ls())
+  
+  #objects 
+  plot_traj = T
+  plot_speed = F
+  plot2pdf = F
+  pfs = F # preflightsection
+  site.radius = 700
+  
+  #libraries
+  library(stringr)
+  library(robofalcon)
+  library(collEcol)
+  
+  #files/folders
+  folder.f = file.path( PROJHOME , "Data" , "rawXYT", "falcon")
+  folder.p  = file.path( PROJHOME , "Output" , "tGPS")
+  files.p = list.files(folder.p)
+  files.f = list.files(folder.f)
+  if( pfs){
+    folder.out = file.path( PROJHOME , "Output" , "gGPS", "pre-flight")
+  } else {
+    folder.out = file.path(PROJHOME , "Output", "gGPS", paste0("site-radius", site.radius))
+  }
+  #flight variables
+  mat = str_split_fixed(files.p, "\\.",12)
+  flight = as.numeric( mat[,1])
+  day = as.numeric(mat[!duplicated(flight),7])
+  predation = mat[!duplicated(flight),3]
+  falcon.day = as.numeric(substr(files.f,8,9))
+  
+  #figure 
+  if( plot2pdf){
+    pdf ( file.path ( PROJHOME , "Figures" , "Trajectories.pdf"))
+  }
+  
+}
+# loop
+for ( i in 1:length(unique(flight))){
+  # i=19
+  
+  # group pigeons 
+  {
+    files2 = files.p[flight == i]
+    data.p = gGPS(files2, folder.p,plot_traj = plot_traj,plot_speed = plot_speed, pre.flight.section = pfs, site.radius = site.radius)
+    pidge.num = dim(data.p)[3]
+  }
+  
+  # # # work
+  # key.code = register_ggmap(install = F)
+  # plot_map(data.p, key.code, register = F, type = "group" ,zoom =16)
+  # # # 
+  
+  # file name
+  vec= mat[flight==i,][1,c(3,1,4,5,6)]
+  file.name = paste0(c(vec[2:1],"g",vec[3],"f",vec[4],vec[5], "rda"),collapse = ".")
+  
+  #if falcon flight - add falcon 
+  if( predation[i] == "p"){
+    load( file.path( folder.f , files.f[which(falcon.day == day[i])]))
+    start = which( data[,3] == data.p[1,3,1])
+    pred = data[start:(start-1+dim(data.p)[1] ),]
+    data = data.p
+    data.list = list(data,pred)
+    
+    ## PLOT ##
+    lim = xylims( data)
+    if ( plot_traj){
+      {plot(data[,"lon",1],data[,"lat",1],type = "n", ylim = lim[[2]], xlim = lim[[1]])
+        for ( k in 1:(pidge.num) ){
+          lines ( data[,"lon",k],data[,"lat",k])
+        }
+        lines ( pred[,"lon"],pred[,"lat"] , col = 2)
+      }
+    }
+    #save
+    save( data.list, file = file.path(folder.out,file.name ))
+    
+  } else { 
+    
+    # otherwise no falcon
+    data = data.p
+    
+    ## PLOT ## 
+    if ( plot_traj){
+      lim = xylims(data)
+      if( predation[i] != "t"){
+        {plot(data.p[,"lon",1],data.p[,"lat",1],type = "n", ylim = lim[[2]], xlim = lim[[1]])
+          for ( k in 1:pidge.num){
+            lines ( data.p[,"lon",k],data.p[,"lat",k], col = k)
+          }
+        }
+      }
+    }
+    
+    #save
+    save( data, file = file.path(folder.out,file.name ))
+  }
+  
+  #take stock
+  print(paste(i, "/", length(unique(flight))))
+}
+
+# Figures
+if( plot2pdf){
+  dev.off()
+}
+
+```
+
+# What are the coordinates of the release site location? 
+
+```{R}
+#housekeeping
+rm(list=ls())
+
+# libraries
+library(robofalcon)
+
+# files / folders
+fold = file.path(PROJHOME , "Output", "gGPS", "site-radius700")
+files = list.files(fold)
+spl = str_split_fixed(files, "\\.",12)
+
+#empty objects
+site.estimates = matrix(NA,0,2)
+
+#loop 
+for ( i in 1:length(files)){
+  #i=1
+  
+  # data
+  load( file.path(fold, files[i]))
+  
+  # add predator if "p"
+  if( spl[i,2] == "p"){
+    data = data.list[[1]]
+  }
+  
+  # cent
+  cent = d2c(data,return_centorid = T)
+  site = cent[1,]
+  
+  # save
+  site.estimates = rbind(site.estimates,site)
+}
+
+site.xy = c( lon = median(site.estimates[9:nrow(site.estimates),1]),
+             lat = median(site.estimates[9:nrow(site.estimates),2]))
+
+save (site.xy , file = file.path(PROJHOME , "Data", "metadata", "site-xy.rda"))
+
+list ( cc = site.xy ,
+       training =  c( lon = median(site.estimates[1:8,1]),
+                      lat = median(site.estimates[1:8,2])))
+```
+
+# Finding optimal site radius
+
+```{R}
+{ # skip to loop
+  
+  # housekeeping
+  rm( list = ls())
+  
+  # libraries
+  library(robofalcon)
+  library(stringr)
+  
+  # files / folders
+  fold = file.path( PROJHOME , "Output", "gGPS" , "site-radius700")
+  files = list.files(fold)
+  spl = str_split_fixed(files, "\\.",12)
+  
+  # only predator files
+  pred.files = which( spl[,2] == "p")
+  
+  # metadata
+  load( file.path(PROJHOME ,"Data" ,"metadata" , "site-xy.rda"))
+  
+  # empty objects
+  predxy = matrix(NA, 0,3)
+  p2ps = matrix(NA,0,2)
+  
+}
+# loop
+for ( i in pred.files){
+  #i=pred.files[1]
+  
+  # data
+  load(file.path(fold, files[i]))
+  
+  # objects
+  data = data.list[[1]]
+  pred = data.list[[2]]
+  len = dim(data)[[3]]
+  
+  # centroid 
+  cent = d2c(data,return_centorid = T)
+  
+  # dist 2 pred
+  d2p = get_dist(cent[,"lon"],cent[,"lat"],
+                 pred[,"lon"],pred[,"lat"],method = "distance")
+  
+  # dist 2 site
+  cent2site = get_dist(site.xy["lon"], site.xy["lat"],
+                       cent[,1],cent[,2],method = "distance")
+  pred2site = get_dist(site.xy["lon"], site.xy["lat"],
+                       pred[,1], pred[,2], method = "distance")
+  
+  # for the relationship between predator's distance to site and distance to group
+  pred2pidgesite = cbind(d2p = d2p, pred2site = pred2site)
+  
+  # save pred
+  predxy = rbind(predxy,pred)
+  p2ps = rbind(p2ps,pred2pidgesite)
+  
+  
+}
+
+
+# PLOTS
+
+# Relationship between predator's distance to site and distance to group
+p2ps = as.data.frame(p2ps)
+library(ggplot2)
+g1 = ggplot( p2ps, aes ( y = d2p , x = pred2site))+
+  geom_point()+
+  xlab ("Distance from predator to release site (m)")+
+  ylab ("Distance from predator to flock centroid (m)")
+
+# Predator trajectory on the map
+key.code = register_ggmap(install = T)
+g2 = plot_map(predxy, type = "solo" ,zoom =16, centre = site.xy, lines.or.points = "points")
+
+gridExtra::grid.arrange(g1,g2,ncol = 2)
+```
+
+
+# Trim data by defined site radius, identify fission, and subgroups analysis
+
+```{R}
+
+{ # skip to loop
+  
+  # housekeeping
+  rm(list= ls())
+  
+  # libraries 
+  library(stringr)
+  library(robofalcon)
+  
+  #objects
+  split.dist = 10
+  
+  #files/folders 
+  fold = file.path(PROJHOME , "Output", "gGPS", "site-radius700")
+  files = list.files(fold)
+  
+  # splitstring
+  spl = str_split_fixed(files, "\\.", 12)
+  
+  # empty objects 
+  maxdists = rep(NA,length(files))
+  subgroups = matrix( NA, 0,4,dimnames = list(NULL, c("subgroupsize" , "groupsize", "flight" , "timestep")))
+}
+
+# loop
+for ( i in 9:
+      length(files)){
+     # 14){
+  #i=17
+  
+  # data
+  {
+    load(file.path(fold, files[i]))
+    if( spl[i,2] == "p" ){
+      dat = data.list[[1]]
+    } else {
+      dat = data
+    }
+    dims = dim(dat)
+  }
+  
+  # empty objects
+  {
+    # objects for if( d2site < 500) below
+    in.flock.matr = matrix(NA, dims[1],dims[3])
+    d2site = 0
+    d1 = t(dat[1,1:2,])
+    site1 = c( lon = mean(d1[,"lon"],na.rm=T),
+               lat = mean(d1[,"lat"],na.rm=T))
+    maxdist = vector()
+  }
+  
+  # loop
+  for ( j in 1:dims[1]){
+    #j=77
+    
+    if( d2site < 500){ #see methods for 500 justification
+      
+      # deal with missing data
+      dat.all = t(dat[j,1:2,])
+      dat.all.complete = dat.all[complete.cases(dat.all),]
+      dims.comp = dim(dat.all.complete)
+      nam.all      = dimnames(dat.all)[[1]]
+      nam.complete = dimnames(dat.all.complete)[[1]]
+      whi = which ( nam.all %in% nam.complete)
+      
+      # convert to metres for groupDetect
+      dat.metres = cbind( x = get_dist( dat.all.complete[,"lon"],
+                                        site1["lat"],
+                                        site1["lon"],
+                                        site1["lat"],method = "distance"),
+                          y = get_dist( site1["lon"],
+                                        dat.all.complete[,"lat"],
+                                        site1["lon"],
+                                        site1["lat"],method = "distance"))
+      
+      # detect membership
+      dist.mat = distance(dat.metres)
+      group.mat = matrix(as.numeric(dist.mat<split.dist),nrow(dist.mat))
+      group.vec = na.omit(as.vector( group.mat))
+      if ( any(group.vec == 1)){
+        # use Igraph to group individuals
+        diag(group.mat) = 0
+        net <- igraph::graph.adjacency(group.mat, mode='undirected',diag=FALSE)
+        weights <- igraph::E(net)$weight
+        coms <- suppressWarnings( igraph::edge.betweenness.community(net,weights=weights))
+        membership = coms$membership
+      } else {
+        membership = 1:nrow(dat.metres)
+      }
+      
+      # manipulate and add to matrix
+      tb = table(membership)
+      mainflock = which.max(tb)
+      in.flock = membership == mainflock
+      incl.missing      = rep(NA,dims[3]) # add back in any missing individuals (i.e. NA's) 
+      incl.missing[whi] = in.flock
+      in.flock.matr[j,] = incl.missing
+      
+      d2site = get_dist( mean(dat.all.complete[in.flock,"lon"]),
+                         mean(dat.all.complete[in.flock,"lat"]),
+                         site1["lon"],site1["lat"],method = "distance")
+      
+      # takestock
+      k = j
+      
+      # save maxdist
+      whi.memb = which(membership == mainflock)
+      foo =  max(na.omit(as.vector(dist.mat[whi.memb,whi.memb]))) /dims[3]
+      maxdist = c(maxdist,foo)
+      
+
+      
+      #plot
+      # XY = xylims(dat.metres)
+      # 
+      # plot( dat.metres[,1],dat.metres[,2],col = membership, ylim = XY[[2]],xlim = XY[[1]])
+      # for ( i in 1:nrow(dat.metres)){
+      #   x = dat.metres[i,1]
+      #   y = dat.metres[i,2]
+      #   draw.circle(x,y,split.dist,border =membership[i])
+      # }
+      
+      
+            # save subgroup analysis
+      if ( length( tb) > 1){
+        cb = cbind( tb[-mainflock],spl[i,7],i,j)
+        subgroups= rbind(subgroups,cb)
+        if ( spl[i,7] == "s" & any(as.numeric( tb[-mainflock]) > 5) ){
+          stop()
+        }
+      }
+      
+    }
+  }
+  
+  
+  #save maxdists
+  foo = max(maxdist)
+  maxdists[i] = foo
+  
+  data.mainflock = dat[1:k,,]
+  for ( j in 1:k){
+    # j = 1
+    in.f = in.flock.matr[j,]
+    data.mainflock[j,,!in.f] = NA
+  }
+  data.entireflock = dat[1:k,,]
+  data.list = list(data.mainflock, data.entireflock)
+  
+  
+  # save
+  save( data.list, file = file.path ( PROJHOME , "Output", "DataRemovedOutliers", files[i]))
+  
+  # takestock
+  print( paste( i, "/" , length(files)))
+}
+
+# save subgroups
+save( subgroups , file = file.path (PROJHOME , "Output", "subgrouping" , "subgroup.rda"))
+
+
+```
+
+## Trim data to site radius 500 
+
+```{R}
+# housekeeping
+rm(list= ls())
+
+#libraries
+library(stringr)
+
+# files/folders 
+fold = file.path(PROJHOME , "Output", "gGPS", "site-radius700")
+fold.f = file.path(PROJHOME, "Output", "DataRemovedOutliers")
+files = list.files(fold)
+
+# splitstring
+spl = str_split_fixed(files, "\\.", 12)
+
+# loop
+for (  i in 1:length(files)){
+  #i=13
+  
+  # data from fission
+  load( file.path(fold.f,files[i]))
+  fis = data.list[[1]]
+  k = dim(fis)[1]
+  
+ # data with all individuals and maybe falcon
+  load( file.path(fold , files[i]))
+  if( spl[i,2] == "p" ){
+    dat = data.list[[1]]
+    falc = data.list[[2]]
+    data = dat[1:k,,]
+    falc= falc[1:k,]
+    data.list = list( data, falc)
+    save( data.list, file = file.path (PROJHOME , "Output", "gGPS", "site-radius500", files[i]))
+  } else {
+    data = data[1:k,,]
+    save( data     , file = file.path (PROJHOME , "Output", "gGPS", "site-radius500", files[i]))
+    
+  }
+  print(cbind(dim(data),dim(fis)))
+  
+}
+```
+
+# plot_map? 
+
+```{R}
+if ( !file.exists(file.path( PROJHOME , "Figures", "fission_maps", "fission-maps.pdf"))){
+  { # skip to loop
+    
+    # housekeeping
+    rm(list = ls())
+    
+    # libraries
+    library(robofalcon)
+    
+    # files/folders 
+    fold = file.path ( PROJHOME , "Output", "DataRemovedOutliers")
+    files = list.files(fold)
+    
+    # metadata
+    load( file.path(PROJHOME ,"Data" ,"metadata" , "site-xy.rda"))
+    
+    # register
+    register_ggmap(install = F)
+    
+  }
+  
+  {
+    # pdf 
+    pdf( file.path( PROJHOME , "Figures", "fission_maps", "fission-maps.pdf"))
+    
+    for ( i in 9:51){
+      #i=9
+      load( file.path(fold, files[i]))
+      data.list = list(data.list[[2]],data.list[[1]])
+      # p = robofalcon::plot_map( data.list,col = c("red","blue"), centre = site.xy,lines.or.points = "points", lwd = 1)
+      
+      d = data.list[[1]]
+      
+      plot ( d[,1,1], d[,2,1])
+      print(p)
+      print(i)
+    }
+    
+    dev.off()
+  }
+}
+```
+
