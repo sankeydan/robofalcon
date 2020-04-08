@@ -5,9 +5,21 @@ output: html_notebook
 
 
 
+## WELCOME R USER
 
+Firstly to use this package you need to use the "Install and restart" button in the Build tab above. 
 
-## analysing Topological number of neigbours.
+If you don't use RStudio, I hope you know how to do this yourself in base R
+
+```{R}
+library( robofalcon) # should not produce an error
+```
+
+## Topological number of neigbours.
+
+This whole file needs to be run twice, 
+
+once for only.remaining = T, and once for = F
 
 ```{R}
 { # skip to loop
@@ -16,7 +28,8 @@ output: html_notebook
   rm(list = ls())
   
   # objects
-  only.remaining = T
+  only.remaining = F
+  plot2pdf = F
   
   #libraries
   library(stringr)
@@ -33,12 +46,14 @@ output: html_notebook
   }
   
   # data
-  load( file.path(fold, files[length(files)]) )
   dat.save = dat
 }
 
 # pdf
-pdf ( file= file.path ( PROJHOME, "Figures", "methods" , paste0("topological-range-parameters-onlyRemainingindivs", only.remaining, ".pdf")),useDingbats = F)
+if( plot2pdf){
+  folderDS( c( "Figures", "methods"))
+  pdf ( file= file.path ( PROJHOME, "Figures", "methods" , paste0("topological-range-parameters-onlyRemainingindivs", only.remaining, ".pdf")),useDingbats = F)
+}
 
 # plot pars
 par( mfcol = c(2,2))
@@ -119,660 +134,46 @@ for ( k in 1:2 ){
 dat = dat.save
 
 # pdf
-dev.off()
+if ( plot2pdf){
+  dev.off()
+}
+```
 
-ali.nn
-att.nn
-# 
+# Add alignment/ attraction to dataset
+```{R}
 
-if ( only.remaining){
-  files = list.files(fold)
-  spl = str_split_fixed(files,"-",8)
-  whi = which(spl[,5] == FALSE)
-  files = files[whi]
-  load( file.path(fold, files[length(files)])) 
-  dat.save$align = dat$align
-  dat.save$attract=dat$attract
-  dat = dat.save
+dat$align = NA
+dat$attract = NA
+whi.s = which(dat$small.big == "s")
+whi.b = which(dat$small.big == "b")
+dat$align[whi.s] = dat[whi.s,(whi.head + ali.nn[1]) ]
+dat$align[whi.b] = dat[whi.b,(whi.head + ali.nn[2]) ]
+
+dat$attract[whi.s]= dat[whi.s ,(whi.cent + att.nn[1])]
+dat$attract[whi.b]= dat[whi.b ,(whi.cent + att.nn[2])]
+
+for ( i in which(is.na(dat$align))){
+  #i=41200
+  x = rev(as.vector(as.numeric(dat[i, whi.cent:(whi.cent + ali.nn[2])])))
+  x2 = na.omit(x)
+  if ( length(x2) > 1){
+    dat$align[i] = x2[1]
+  }
+}
+for ( i in which(is.na(dat$attract))){
+  #i=41200
+  x = rev(as.vector(as.numeric(dat[i, whi.cent:(whi.cent + att.nn[2])])))
+  x2 = na.omit(x)
+  if ( length(x2) > 1){
+    dat$attract[i] = x2[1]
+  }
+}
+
+folderDS( c("Output", "Topological"))
+if( only.remaining){
+  save( dat, file = file.path ( PROJHOME , "Output", "Topological", "REMrobofalcon-data.rda"))
 } else {
-  
-  dat$align = NA
-  dat$attract = NA
-  whi.s = which(dat$small.big == "s")
-  whi.b = which(dat$small.big == "b")
-  dat$align[whi.s] = dat[whi.s,(whi.head + ali.nn[1]) ]
-  dat$align[whi.b] = dat[whi.b,(whi.head + ali.nn[2]) ]
-  
-  dat$attract[whi.s]= dat[whi.s ,(whi.cent + att.nn[1])]
-  dat$attract[whi.b]= dat[whi.b ,(whi.cent + att.nn[2])]
-  
-  for ( i in which(is.na(dat$align))){
-    #i=41200
-    x = rev(as.vector(as.numeric(dat[i, whi.cent:(whi.cent + ali.nn[2])])))
-    x2 = na.omit(x)
-    if ( length(x2) > 1){
-      dat$align[i] = x2[1]
-    }
-  }
-  for ( i in which(is.na(dat$attract))){
-    #i=41200
-    x = rev(as.vector(as.numeric(dat[i, whi.cent:(whi.cent + att.nn[2])])))
-    x2 = na.omit(x)
-    if ( length(x2) > 1){
-      dat$attract[i] = x2[1]
-    }
-  }
+  save( dat, file = file.path ( PROJHOME , "Output", "Topological", "ALLrobofalcon-data.rda"))
 }
 
-save( dat, file = file.path(PROJHOME , "Output" , "selfish" , paste0( "self-dat" , "-rem-is-", only.remaining,"-", substr(Sys.time(),1,10), "-h",substr(Sys.time(),12,13),"-m", substr(Sys.time(),15,16),".rda")))
-
 ```
-
-
-# Analysing time lags
-
-```{R}
-# housekeeping
-rm(list = ls())
-
-# objects
-only.remaining = F
-
-# files/folders
-fold =file.path(PROJHOME , "Output" , "selfish" )
-files = list.files(fold)
-spl = str_split_fixed(files,"-",8)
-whi = spl[,5] == FALSE
-if ( only.remaining){
-  files = files[!whi]
-} else{
-  files = files[whi]
-}
-# data
-load( file.path(fold, files[length(files)]) )
-
-
-whi = which ( names (dat) == "lag-5")
-vars = c("turn2falcpos","turn2falchead","align","attract","turn2home")
-run = 8
-mat = matrix(NA, run, 5, dimnames = list( names(dat)[whi:(whi+(run-1))],
-                                          vars))
-for ( i in 1:run){
-  #i=1
-  for ( j in 1:length(vars)){
-    #j=1
-    mat[i,j] = summary( lm(dat[,(whi-1+i)] ~ dat[,vars[j]]))$coeff[2,"t value"]
-  }
-}
-
-lags = seq(-5,2,1)
-lagnam = paste0("lag",lags)
-
-dat.4.plot = list(lagnam, mat)
-save( dat.4.plot, file = file.path(PROJHOME, "Figures", "FigureData", "lags_as_predictors_of_turn"))
-plot(dat.4.plot[,1])
-```
-
-
-
-# When there is conflict between alignment and attraction. 
-
-```{R}
-{
-  # housekeeping
-  rm(list = ls())
-  
-  # objects
-  only.remaining = F
-  
-  # libraries
-  library(stringr)
-  library(nlme)
-  library(lme4)
-  
-  # files/folders
-  fold =file.path(PROJHOME , "Output" , "selfish" )
-  files = list.files(fold)
-  spl = str_split_fixed(files,"-",8)
-  whi = spl[,5] == FALSE
-  if ( only.remaining){
-    files = files[!whi]
-  } else{
-    files = files[whi]
-  }
-  # data
-  load( file.path(fold, files[length(files)]) )
-}
-
-# clockwise vs anticlockwise
-dat$sig.cent = sign( dat$attract)
-dat$sig.head = sign( dat$align)
-dat$sig.turn = sign( dat$diff_head)
-dat$sig.lag1 = sign( dat$lag1)
-
-
-# conflict?
-dat$conflict = ( dat$sig.head != dat$sig.cent)
-con = which(dat$conflict == T)
-dat.con = dat[con,]
-dat.con$biased.cent= dat.con$sig.turn == dat.con$sig.cent
-dat.con$lagg = dat.con$sig.turn == dat.con$sig.lag1
-
-# remove outer limits
-#dat.con = dat.con[which(dat.con$dist2pred < 220 | is.na(dat.con$dist2pred )),]
-dat.con$pigeon = as.character(dat.con$pigeon)
-
-#scale
-for ( i in 1:ncol(dat.con)){
-  if ( class( dat.con[,i]) == "numeric"){
-    dat.con[,i] = scale(dat.con[,i])
-  }
-}
-
-# numeric biased cent
-dat.con$biased.cent = as.numeric(dat.con$biased.cent)
-
-#
-vars = c( "biased.cent",
-          "condition", 
-          "cross.wind",
-          "dist2home",
-          "small.big",
-          "turn2home", 
-          "pigeon",
-          "Date",
-          "group.num")
-d = dat.con[,which(names(dat.con) %in% vars)]
-d = d[complete.cases(d),]
-
-
-lmm1 = lme( biased.cent ~  
-              condition +
-              cross.wind + 
-              dist2home + 
-              small.big +
-              turn2home  
-            , random = list( pigeon=~1,Date =~1,group.num = ~1), correlation = corAR1(), data = d, na.action = "na.fail" )
-
-sjPlot::plot_model(lmm1)
-#table(d$condition)
-```
-
-
-# BIG MODEL 
-
-```{R}
-source( file.path(PROJHOME , "source", "source.r"))
-
-#for ( i in 1:10){
-sam = sample( 1:nrow(dat), (nrow(dat)/8) )
-d = dat[sam,]
-d = d[,vars]
-d.coh = dat.coh[sam,]
-
-lmm1 = lme( log_diff_head ~  
-              condition *attract*dist2cent +
-              condition *align *dist2cent+
-              cross.wind +
-              turn2home  
-            , random = list( pigeon=~1,Date =~1,group.num = ~1,small.big =~1), correlation = corAR1(), data = d, na.action = "na.omit" )
-
-summary(lmm1)
-
-
-lmm2 = lme( log_diff_head ~  
-              attract + 
-              align +
-              (turn2falchead) +
-              turn2falcpos +
-              cross.wind +
-              turn2home
-            , random = list( pigeon=~1,Date =~1,group.num = ~1,small.big=~1), data = d, na.action = "na.omit" )
-
-
-lmm3 = lme( log_diff_head ~  
-              condition *attract*dist2cent +
-              condition *align *dist2cent+
-              cross.wind +
-              turn2home  
-            , random = list( pigeon=~1,Date =~1,group.num = ~1,small.big =~1), correlation = corAR1(), data = d.coh, na.action = "na.omit" )
-
-d.coh = dat.coh[sam,]
-lmm4 = lme( dir.rel.ali ~  
-              condition * dist2cent 
-            , random = list( pigeon=~1,Date =~1,group.num = ~1,small.big =~1), data = d.coh, na.action = "na.omit" )
-
-summary(lmm2)
-
-hist( na.omit(dat.coh$dist2cent))
-```
-
-
-
-```{R}
-{
-  sjPlot::plot_model(lmm1)
-  sjPlot::plot_model(lmm2)
-  sjPlot::plot_model(lmm3)
-}
-
-
-```
-
-```{R}
-ggplot(dat, aes( dist2cent , dir.rel.ali ,col = condition ))+
-  geom_smooth() + 
-  xlim (0,30)+
-  ylab ( "turn towards centroid (rad)") +
-  xlab( "Distance to centroid (m)")
-
-
-```
-
-
-```{R}
-m1 = lmm1
-summary(m1)
-options(na.action = "na.omit")
-m = MuMIn::dredge(lmm1)
-save(m , file= file.path(PROJHOME , "Output", "Statistics", "mumin_condition-headcent.rda"))
-load( file.path(PROJHOME , "Output", "Statistics", "mumin_condition-headcent.rda"))
-m1 = model.avg(m)
-summary(m1)
-```
-
-
-# are remaining individuals more or less dense? Also what were the lowest group numbers for small/large flocks?
-
-```{R}
-{
-  # housekeeping
-  rm(list = ls())
-  
-  # objects
-  only.remaining = F
-  
-  # libraries
-  library(stringr)
-  library(robofalcon)
-  library(ggplot2)
-  
-  # files/folders
-  fold = file.path( PROJHOME , "Output" , "DataRemovedOutliers")
-  files = list.files(fold)
-  spl = str_split_fixed(files,"\\.",12)
-  
-  # empty objects 
-  d2cdat = matrix( NA, 0,5)
-  group.size = rep(NA,length(files))
-  flock.sizes = vector()
-  ts = vector()
-}
-# looop
-for ( i in 9:length(files)){
-  # i = 9
-  
-  # data
-  load ( file.path(fold, files[i]))
-  data = data.list[[1]]
-  group.size[i] = dim(data)[[3]]
-  
-  dist2cent = d2c( data)
-  nn = near_nei(data)[[2]]
-  t = 1:dim(data)[[1]]
-  
-  flock.size = apply( dist2cent, 1, function(x){ length(which(!is.na(x)))})
-  df = cbind(   d2c = rowMeans( dist2cent , na.rm =  T),
-                flock.size = flock.size,
-                cond = spl[i,2],
-                nn1 = rowMeans( nn,na.rm=T),
-                u.f = spl[i,1])
-  
-  flock.sizes = c(flock.sizes, rep(flock.size,dim(data)[[3]] ))
-  ts = c(ts,rep(t,dim(data)[[3]] ))
-  d2cdat = rbind(d2cdat,df)
-  
-  # print
-  print(i)
-}
-
-d2cdat = as.data.frame(d2cdat)
-d2cdat$d2c = as.numeric(as.character(d2cdat$d2c))
-d2cdat$flock.size = as.numeric(as.character(d2cdat$flock.size))
-d2cdat$nn1 = as.numeric(as.character(d2cdat$nn1))
-
-
-# ggplot( d2cdat, aes(flock.size, d2c, col = cond))+
-#   geom_point()+
-#   geom_smooth()
-# 
-# 
-# ggplot( d2cdat, aes(flock.size, sqrt(nn1), col = cond))+
-#   geom_point()+
-#   geom_smooth()
-
-
-
-save ( d2cdat, file = file.path ( PROJHOME , "Output", "Statistics", "Data", "d2cdat.rda"))
-save ( flock.sizes, file= file.path(PROJHOME,"Output", "statistics", "data", "flock.sizes.rda"))
-save (          ts, file= file.path(PROJHOME,"Output", "statistics", "data", "ts.rda"))
-load(file.path ( PROJHOME , "Output", "Statistics", "Data", "d2cdat.rda"))
-load(file.path ( PROJHOME , "Output", "Statistics", "Data", "nn1dat.rda"))
-ggplot( d.d2c, aes(flock.size, d2c, col = cond))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-ggplot( d.nn1, aes(flock.size, nn1, col = cond))+
-  geom_point()+
-  geom_smooth(method = "lm")
-
-print(group.size)
-#
-
-```
-
-# 
-```{R}
-{
-  # housekeeping
-  rm(list = ls())
-  
-  # objects
-  only.remaining = F
-  
-  # libraries
-  library(stringr)
-  library(ggplot2)
-  
-  # files/folders
-  fold =file.path(PROJHOME , "Output" , "selfish")
-  files = list.files(fold)
-  spl = str_split_fixed(files,"-",8)
-  whi = spl[,5] == FALSE
-  if ( only.remaining){
-    files = files[!whi]
-  } else{
-    files = files[whi]
-  }
-  # data
-  load( file.path(fold, files[length(files)]) )
-}
-## # #  work 
-dat = dat[,which( names(dat) %in% c("attract", "align","small.big", "lag1","pigeon", "diff_head","dist2pred", "dist2site", "condition","turn2falchead", "Date", "group.num"))]
-
-# ##  # #
-# turn relative to perfect alignment
-dir.rel.ali = dat$align - dat$diff_head
-
-dat$sig.cent = sign( dat$attract)
-dat$sig.head = sign( dat$align)
-#dat$sig.turn = sign( dat$diff_head)
-#dat$sig.lag1 = sign( dat$lag1)
-
-
-dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1)
-dat$dir.rel.ali = dir.rel.ali * dat$conflict
-
-d = dat[dat$dist2pred < 300,]
-d$logali = ifelse ( d$dir.rel.ali > 0, sqrt(d$dir.rel.ali), (-1* sqrt( abs(d$dir.rel.ali))))
-
-
-
-
-
-d$group.num = as.character(d$group.num)
-for ( i in 1:ncol(d)){
-  print( c( names(d)[i], class(d[,i])))
-}
-lmm = lme( dir.rel.ali ~  
-             dist2pred *
-             small.big 
-           , random = list( pigeon=~1,Date =~1,group.num = ~1), correlation = corAR1(), data = d, na.action = "na.omit" )
-
-summary(lmm)
-sjPlot::plot_model(lmm)
-# ggplot( dat, aes( turn2falchead, dir.rel.ali))+
-#   geom_smooth()+
-#   geom_point()+
-#   
-#   ggplot( dat, aes( turn2falchead*dist2pred, dir.rel.ali))+
-#   geom_smooth()
-# 
-# 
-# ggplot( dat, aes( dist2site, dir.rel.ali, col = condition))+
-#   #geom_point()+
-#   geom_smooth() 
-
-
-# {
-#   par(mfrow = c(2,1))
-#   hist(dat$dir.rel.ali[dat$condition == "c"], xlim = c(-0.25,0.25),breaks = 10000, col= "grey")
-#   hist(dat$dir.rel.ali[dat$condition == "p"], xlim = c(-0.25,0.25),breaks = 10000, col= "grey")
-# }
-
-```
-
-## Testing for an interaction  between flock size and distance to predator. at different thresholds. 
-
-```{r}
-filePath = file.path ( PROJHOME , "Output", "Statistics" , "models" , "dist2pred-Vs-Selfish_bigsmallinteraction.rda" )
-if ( !file.exists(filePath)){
-  li = list()
-  m =1 
-  nrows = vector()
-  sq = seq(30,70,10)
-  for (  i in sq){
-    d = dat[dat$dist2pred < i,]
-    
-    lmm = lme( dir.rel.ali ~
-                 dist2pred *
-                 small.big
-               , random = list( pigeon=~1,Date =~1,group.num = ~1), correlation = corAR1(), data = d, na.action = "na.omit" )
-    nrows = c(nrows,nrow(d))
-    print( summary(lmm))
-    sum = summary(lmm)
-    li[[m]] = sum
-    m = m+1
-  }
-  li[[m]] = sq
-  li[[m+1]] = nrows
-  save(li, file = filePath)
-} else {
-  load( filePath)
-}
-
-for ( i in 1:length(li)){
-  print(li[[i]])
-}
-```
-
-```{R}
-hist( dat$dist2pred, main = "", xlab = "Distance to falcon (m)")
-
-```
-
-```{R}
-pdf( file = file.path( PROJHOME , "Figures", "Results" , "Selfish-vs-dist2pred_flocksizeinteraction.pdf"))
-dat$large.small = ifelse (dat$small.big == "b", "Large" , "Small")
-g = ggplot( dat, aes( dist2pred, dir.rel.ali, col = large.small))+
-  # geom_point()+
-  geom_smooth()+
-  ylab( "Selfish herd parameter (rad)")+
-  xlim(0,100) +
-  xlab( "Distance to falcon (m)")+  guides(col=guide_legend(title="Flock Size"))+
-  geom_vline(  xintercept = sq , lty  = c(2,1,1,1,2))#, lty = c(1,2,2,2,1)))
-print(g)
-dev.off()
-
-```
-
-## Attraction or just getting away from predator? 
-
-```{R}
-
-# housekeeping
-rm(list = ls())
-source(file.path(PROJHOME, "source" , "source.r"))
-
-dat$sign.diff = sign(dat$diff_head)
-dat$log_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
-
-```
-
-```{R}
-# clockwise vs anticlockwise
-dat$sig.cent = sign( dat$attract)
-dat$sig.head = sign( -dat$turn2falchead)
-dat$sig.turn = sign( dat$diff_head)
-
-# conflict?
-dat$conflict = ( dat$sig.head != dat$sig.cent)
-con = which(dat$conflict == T)
-dat$biased.cent= dat$sig.turn == dat$sig.cent
-dat.con = dat[con,]
-dat.nocon = dat[-con,]
-
-
-
-list(percent.con =  nrow(dat.con)/nrow(dat))
-
-save( dat.con , file = file.path(PROJHOME , "Output" , "conflict" , "dat-con.rda"))
-save( dat.nocon , file = file.path(PROJHOME , "Output" , "conflict" , "dat-nocon.rda"))
-```
-
-```{R}
-load(file.path(PROJHOME , "Output" , "conflict" , "dat-con.rda"))
-pdf( file = file.path ( PROJHOME , "Figures" , "Results", "Centroid-falcon-conflict.pdf"))
-small.bigs = c("b","s")
-title  = c("large flocks", "small flocks")
-par(mfrow = c(2,1))
-par(mar = c(5,5,2.5,5))
-d2ps = vector()
-for ( j in 2:1){
-  dat.con2  = dat.con[dat.con$small.big == small.bigs[j],]
-  sq.d2p = seq(0,100,10)
-  sq.ali = seq(0,pi,pi/10)
-  mat.d2p = matrix(NA,(length(sq.d2p)-1),2)
-  mat.ali = matrix(NA,(length(sq.ali)-1),2)
-  
-  dat.con2$falc.ali = abs( dat.con2$turn2falchead)
-  
-  for ( i in 1:(length(sq.d2p)-1)){
-    #i=10
-    d.d2p = dat.con2[dat.con2$dist2pred >sq.d2p[i] &
-                       dat.con2$dist2pred <sq.d2p[(i+1)],]
-    d.ali = dat.con2[dat.con2$falc.ali  >sq.ali[i] &
-                       dat.con2$falc.ali  <sq.ali[(i+1)],]
-    
-    cons.d2p = c( length(which(d.d2p$biased.cent == T)),
-                  length(which(d.d2p$biased.cent == F)))
-    
-    cons.ali = c( length(which(d.ali$biased.cent == T)),
-                  length(which(d.ali$biased.cent == F)))
-    mat.d2p[i,] = cons.d2p
-    mat.ali[i,] = cons.ali
-  }
-  d2p = apply( mat.d2p,1, function(x){ x/sum(x)*100})
-  ali = apply( mat.ali,1, function(x){ x/sum(x)*100})
-  #barplot ( as.vector(ali),col = 1:2)
-  
-  d2ps = c(d2ps, d2p)
-  {
-    
-   # barplot ( as.vector(d2p),col = 1:2, cex.lab = 1.5, ylab = "", xlab = "Distance to falcon (m)", main = title[j] )
-    #legend( "topright", c("Biased to centroid" , "Biased to avoidance of falcon"), fill = 1:2)
-    
-    #axis ( 1, at = seq(1.35,24.5,2.4), labels = seq(10,100,10))
-  }
-}
-{barplot(d2ps,col = 1:2)
-  axis ( 1, at = seq(1.35,24.5,2.4), labels = seq(10,100,10))
-  legend( "topright", c("Biased to centroid" , "Biased to avoidance of falcon"), fill = 1:2)
-    
-}
-{
-  par(new = T)
-  par(mfrow = c(1,1))
-  plot.new()
-  mtext (  "% movement decisions in favour of...",2, line = 4)
-}
-dev.off()
-```
-
-```{R}
-acf(na.omit(as.numeric(dat$conflict)))
-dir.rel.ali = dat$align - dat$diff_head
-dat$sig.cent = sign( dat$attract)
-dat$sig.head = sign( dat$align)
-dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1)
-dat$dir.rel.ali = dir.rel.ali * dat$conflict
-#dat$ang.diff = ang.diff( dat$attract, dat$diff_head)
-
-d1 = dat[dat$small.big == "b",]
-d2 = dat[dat$small.big == "s",]
-g1 = ggplot( d1 , aes( dist2cent, dir.rel.ali ,col = condition))+
-  geom_smooth() + 
-  xlim(0,30)
-g2 = ggplot( d2 , aes( dist2cent, dir.rel.ali ,col = condition))+
-  geom_smooth() + 
-  xlim(0,30)
-g2 = ggplot( d2 , aes( dist2cent, dir.rel.ali ,col = condition))+
-  geom_smooth() + 
-  xlim(0,30)
-g3 = ggplot( dat , aes( dist2cent, dir.rel.ali ,col = condition))+
-  geom_smooth() + 
-  xlim(0,30)+
-  # ylim(-0.15,0.075)+
-  geom_hline(yintercept =0,lty = 2)
-gridExtra::grid.arrange(g1,g2,g3)
-pdf(file.path(PROJHOME , "Figures", "selfishmodel", "selfish-treatementdifferences.pdf"))
-g3
-dev.off()
-{
-  hist(dat.coh$dist2cent, xlim = c(0,30),breaks = 100, xlab = "Distance to centroid (m)", main = "Only cohesive pigeon data")
-  abline(v = quantile(dat.coh$dist2cent,.5,na.rm = T))
-  abline(v=10,col = "red")
-}
-{
-  hist(dat$dist2cent, xlim = c(0,30),breaks = 1000, xlab = "Distance to centroid (m)", main = "All pigeon data")
-  abline(v = quantile(dat$dist2cent,.5,na.rm = T))
-  abline(v=10, col = "red")
-}
-```
-```{R}
-lmm1 = glmmPQL( biased.cent~
-                  dist2pred * small.big
-                , random = list( pigeon=~1,Date =~1,group.num = ~1), correlation = corAR1(), family = "binomial", data = dat.con, na.action = "na.omit" )
-summary(lmm1)
-
-
-
-#summary(lm(biased.cent ~ dist2pred, data = dat.con))
-```
-
-# conflict/dist2pred interaction stats
-```{R}
-
-
-```
-
-# descriptives
-
-```{R}
-fold = file.path(PROJHOME , "output", "dataremovedoutliers")
-files = list.files(fold)
-for (  i in 1:length(files)){
-  load(file.path(fold,files[i]))
-  data = data.list[[1]]
-  print(dim(data)[[3]])
-}
-```
-
-
-
-```{R}
-hist(dat$nn1dist, xlim = c(0,100),breaks = 1000)
-abline( v = 7)
-quantile(na.omit(dat$nn1dist),.90)
-```
-

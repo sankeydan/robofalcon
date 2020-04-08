@@ -1,0 +1,466 @@
+# allmodels
+```{R}
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+
+# TURNING ANGLES
+source( file.path(PROJHOME , "source", "source.r"))
+
+# ALL DATA
+
+d = dat[sam9,]
+d = d[,vars.nofalc]
+d = d[complete.cases(d),]
+#d$log_diff_head = ( d$diff_head + 1)
+hist(d$diff_head, breaks = 1000)
+
+lmm1 = lme( diff_head ~
+              condition *attract*dist2cent +
+              condition *align *dist2cent+
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1), data = d, na.action = "na.fail" )
+
+lmm1 = lme( log_diff_head ~
+              attract+
+             align
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1), data = d, na.action = "na.fail" )
+
+diagnostics.plot(lmm1 )
+summary(lmm1)
+```
+
+```{R}
+d = dat[sam9,]
+d = d[,c(vars.nofalc, "diff_head_sharp")]
+d = d[complete.cases(d),]
+#d$log_diff_head = ( d$diff_head + 1)
+hist(d$diff_head_sharp, breaks = 1000)
+
+lmm1.1 = lme( diff_head_sharp ~
+              condition *attract*dist2cent +
+              condition *align *dist2cent+
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1), data = d, na.action = "na.fail" )
+
+confint(lmm1.1)
+diagnostics.plot(lmm1.1)
+sjPlot::plot_model( lmm1.1 )
+
+```
+
+```{R}
+# COHESIVE FLOCKS
+dat.coh$diff_head_sharp = dat$diff_head_sharp
+d.coh = dat.coh[sam9,]
+d.coh = d.coh[,names(d.coh) %in% c( vars.nofalc, "diff_head_sharp")]
+d.coh = d.coh[complete.cases(d.coh),]
+
+lmm2 = lme( diff_head_sharp ~
+              condition *attract*dist2cent +
+              condition *align *dist2cent+
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1),data = d.coh, na.action = "na.fail" )
+
+diagnostics.plot(lmm2)
+summary(lmm2)
+qq(lmm2)
+```
+
+```{R}
+
+# FALCON ONLY
+d = dat[sam9,]
+d = d[,c(vars, "diff_head_sharp")]
+d = d[complete.cases(d),]
+
+lmm3 = lme( diff_head_sharp ~
+              attract * dist2cent +
+              align * dist2cent +
+              turn2falchead +
+              turn2falcpos +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big=~1), data = d,
+            na.action = "na.fail" )
+
+diagnostics.plot(lmm3)
+summary(lmm3)
+
+save.mixed.model( lmm1 , "Turn-angle-all.csv")
+save.mixed.model( lmm1.1 , "01_Turn-angle-sharp.csv")
+save.mixed.model( lmm2 , "02_Turn-angle-coh.csv")
+save.mixed.model( lmm3 ,"03_Turn-angle-falc.csv")
+```
+
+
+# mumin
+
+# save.mixed.model( lmm1,"mumin_Turn-angle-all.rda" ,mumin = T)
+# save.mixed.model( lmm2,"mumin_Turn-angle-coh.rda" ,mumin = T)
+# save.mixed.model( lmm3,"mumin_Turn-angle-falc.rda" ,mumin = T)
+
+
+## Speed, speed var and centrip
+
+##### SPEED VARIANCE
+source( file.path(PROJHOME , "source", "source.r"))
+
+load(file.path(PROJHOME,"output", "Aerodynamic variables" , "Speedvardat.rda"))
+sam16 =  seq( 1,nrow(d), 16 )
+da = d[sam16,]
+da$t [da$t < 8] = NA
+
+d =  da[,c("speed.var","condition","small.big","t", "speed", "cross.wind","dist2site", "support.wind","unique.flight","group.num")]
+d2 = da[,c("speed.var", "condition","small.big","t", "speed", "cross.wind","dist2site",  "dist2pred", "support.wind","unique.flight","group.num")]
+
+# boxcox
+b = MASS::boxcox((d$speed.var)  ~  condition +  small.big +
+                   abs( cross.wind) +
+                   # t +
+                   log(dist2site+1) +
+                   #  log(dist2pred+1) +
+                   support.wind, data = d)
+lamda=b$x
+lik=b$y
+bc = cbind(lamda, lik)
+head(bc[order(-lik),])
+d$trans.speed.var = (d$speed.var)^-0.181818
+
+# model
+d = d[complete.cases(d),]
+lmm4 = lme( trans.speed.var ~
+               condition +  small.big +
+              abs( cross.wind) +
+              # t +
+              log(dist2site+1) +
+            #  log(dist2pred+1) +
+              support.wind
+            , random = list( unique.flight =~1),
+            data = d, na.action = "na.fail" )
+
+# diagnostics
+diagnostics.plot(lmm4)
+summary(lmm4)
+
+# save
+save( d , file = file.path( PROJHOME , "Figures" , "FigureData", "Speedvar.rda"))
+
+## descriptives
+median ( d$speed.var[d$condition == "p"], na.rm=T)
+median ( d$speed.var[d$condition == "c"], na.rm=T)
+
+##### CENTRIPETAL ACCELERATION
+
+# subsample
+d = dat[sam6,]
+d = d[,vars.nofalc]
+
+quantile ( na.omit(d$centrip),0.01)
+hist( d$centrip, breaks = 1000000, xlim = c(0,1))
+
+hist ( d$diff_head[d$centrip< 0.01])
+# cut off
+d$centrip [d$centrip < 0.01] = NA
+d$centrip [d$centrip > 13 ] = NA
+
+# remove NA
+d = d[complete.cases(d),]
+
+# hist
+hist(d$centrip,breaks = 100)
+
+# transform
+b = MASS::boxcox((d$centrip)  ~  condition * small.big +
+                   abs(cross.wind) +
+                   support.wind +
+                   log(dist2site+1), data = d)
+lamda=b$x
+lik=b$y
+bc = cbind(lamda, lik)
+head(bc[order(-lik),])
+cb =bc[order(-lik),]
+d$trans.centrip = d$centrip^cb[1,1]
+
+
+lmm5 = lme( trans.centrip ~
+              condition * small.big +
+              abs(cross.wind) +
+              support.wind +
+              log(dist2site+1)
+            , random = list( pigeon=~1,
+                             unique.flight =~1), data = d,
+            na.action = "na.fail" )
+summary(lmm5)
+
+
+boxplot( d$trans.centrip ~ d$condition + d$small.big)
+
+diagnostics.plot(lmm5)
+boxplot( d$centrip ~ d$condition + d$small.big)
+
+save( d , file = file.path( PROJHOME , "Figures" , "FigureData", "centrip.rda"))
+
+
+###### SPEED
+
+source( file.path(PROJHOME , "source", "source.r"))
+
+d = dat.coh[sam24,]
+d = d[,vars.nofalc]
+d$speed[d$speed> 35] = NA
+d$speed[d$speed< 5]  = NA
+d = d[complete.cases(d),]
+
+lmm6 = lme( speed ~
+              condition * small.big +
+              abs(cross.wind) +
+              log(dist2site+1) +
+              support.wind
+            , random = list( pigeon=~1,
+                             unique.flight =~1), data = d,
+            na.action = "na.fail" )
+
+summary(lmm6)
+diagnostics.plot(lmm6)
+boxplot( d$speed ~ d$condition + d$small.big)
+
+save.mixed.model(lmm4, "04_Speedvariance.csv")
+save.mixed.model(lmm5, "05_centrip.csv")
+save.mixed.model(lmm6, "06_Speed.csv")
+# save.mixed.model(lmm6.1, "Speed-onlysmall.csv")
+# save.mixed.model(lmm6.2, "speed-onlylarge.csv")
+
+## descriptives
+median ( d$centrip[d$condition == "p"], na.rm=T)
+median ( d$centrip[d$condition == "c"], na.rm=T)
+
+
+
+median( dat$speed[ dat$condition == "p" & dat$small.big == "b"],na.rm=T)
+median( dat$speed[ dat$condition == "p" & dat$small.big == "s"],na.rm=T)
+median( dat$speed[ dat$condition == "c" & dat$small.big == "b"],na.rm=T)
+median( dat$speed[ dat$condition == "c" & dat$small.big == "s"],na.rm=T)
+
+save( d , file = file.path( PROJHOME , "Figures" , "FigureData", "Speed.rda"))
+# save.mixed.model(lmm4, "mumin_Speedvariance.rda", mumin = T)
+# save.mixed.model(lmm5, "mumin_centrip.rda"      , mumin = T)
+# save.mixed.model(lmm6, "mumin_Speed.rda"        , mumin = T)
+
+
+
+
+####### FLOCK COHESION
+source( file.path(PROJHOME , "source", "source.r"))
+
+d = dat.coh[sam27,]
+d = d[,c(vars.nofalc, "flock.size")]
+d = d[complete.cases(d),]
+
+lmm7 = lme( log(dist2cent+1) ~
+              flock.size * condition
+            , random = list( unique.flight=~1, pigeon=~1), data = d, na.action = "na.fail" )
+
+summary(lmm7)
+diagnostics.plot(lmm7)
+save.mixed.model(lmm7,"07_dist2cent-vs-condition.csv")
+
+save( d,file = file.path ( PROJHOME , "Figures", "FigureData" , "dist2cent.rda"))
+
+d = dat.coh[sam26,]
+d = d[,c(vars.nofalc, "nn1dist", "flock.size")]
+d$nn1dist[d$nn1dist > 10] = NA
+b = MASS::boxcox((d$nn1dist+1)  ~ flock.size * condition +
+                   abs(cross.wind) +
+                   support.wind +
+                   log(dist2site+1), data = d)
+lamda=b$x
+lik=b$y
+bc = cbind(lamda, lik)
+head(bc[order(-lik),])
+cb =bc[order(-lik),]
+d$trans.nn1 = d$nn1dist^cb[1,1]
+d$trans.nn1 = as.numeric(as.character(d$nn1dist^0.25))
+
+
+#d$trans.nn1 = log( sqrt(sqrt(d$nn1dist)) +1)
+#d$trans.nn1 = d$nn1dist^0.25
+
+hist(d$trans.nn1,breaks = 1000)
+d$trans.nn1[is.infinite(d$trans.nn1)] = NA
+d = d[complete.cases(d),]
+lmm8 = lme( log( trans.nn1+1)~
+              flock.size * condition  +
+            abs(cross.wind) +
+            support.wind +
+            log(dist2site+1)
+            , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+
+summary(lmm8)
+diagnostics.plot(lmm8)
+
+save( d,file = file.path ( PROJHOME , "Figures", "FigureData" , "nn1.rda"))
+
+library(ggplot2)
+ggplot( d, aes( flock.size , nn1dist , col = condition))+
+  geom_smooth(method = "lm")
+save.mixed.model(lmm8,"08_nn1-vs-condition.csv")
+
+
+## Conflict
+source( file.path(PROJHOME , "source", "source.r"))
+
+names(dat.con)
+
+ts.acf <- acf(as.numeric(na.omit(dat.con$biased.cent)))
+alpha = 0.95
+conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+aep = which(ts.acf$acf < conf.lim)[1]
+aep
+
+sam = seq(1,nrow(dat.con),aep)
+d.con = dat.con[sam,c(vars,"biased.cent","dist2pred")]
+d.con = d.con[complete.cases(d.con),]
+lmm9 = MASS::glmmPQL( biased.cent~
+                        dist2pred * small.big
+                      , random = list( pigeon=~1,unique.flight =~1,
+                                       group.num = ~1),
+                      family = "binomial", data = d.con,
+                      na.action = "na.fail" )
+summary(lmm9)
+
+save.mixed.model(lmm9 , "conflict.csv")
+
+# no conflict
+names(dat.nocon)
+
+ts.acf <- acf(as.numeric(na.omit(dat.nocon$biased.cent)))
+alpha = 0.95
+conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+aep = which(ts.acf$acf < conf.lim)[1]
+sam = seq(1,nrow(dat.nocon),aep)
+d.con = dat.nocon[sam,c(vars,"biased.cent","dist2pred")]
+d.con = d.con[complete.cases(d.con),]
+lmm9 = MASS::glmmPQL( biased.cent~
+                        dist2pred * small.big
+                      , random = list( pigeon=~1,unique.flight =~1,
+                                       group.num = ~1),
+                      family = "binomial", data = d.con,
+                      na.action = "na.fail" )
+summary(lmm9)
+
+save.mixed.model(lmm9 , "noconflict.csv")
+
+
+d = dat[sam9, ]
+lmm10 = lme( dir.rel.ali_sharp~
+              condition * dist2cent +
+               small.big *condition +
+               cross.wind +
+               log(dist2site)
+            , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+
+lmm10.1 = lme( dir.rel.ali_sharp~
+               condition * dist2cent +
+               small.big *condition +
+               cross.wind +
+               log(dist2site)
+             , random = list( unique.flight=~1), data = d, na.action = "na.omit" )
+AIC(lmm10)
+AIC(lmm10.1)
+diagnostics.plot(lmm10)
+summary(lmm10)
+save.mixed.model(lmm10, "selfish-herd-param.csv")
+
+lmm10.1 = lme( dir.rel.ali~
+               condition * dist2cent +
+               small.big *condition +
+               cross.wind +
+               log(dist2site)
+             , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+diagnostics.plot(lmm10.1)
+summary(lmm10.1)
+
+
+
+########### MUMINS
+
+#mumins
+
+#libraries
+library(MuMIn)
+
+# files/folders
+fold = file.path(PROJHOME, "Output", "Statistics", "mumin")
+files = list.files(fold)
+
+for ( i in 1:length(files)){
+  #i=1
+  load( file.path(fold,files[i]))
+  m1 = model.avg(m)
+  sum1 = summary(m1)
+  print(sum1$coefmat.full)
+  print(files[i])
+  qq(na.omit(resid(m1)))
+}
+
+
+########### BIG TABLE
+
+rm(list = ls())
+fold = file.path ( PROJHOME , "Output" , "Statistics" , "Tables")
+files= list.files(fold)
+d = read.csv( file.path(fold, files[1]))
+d$name = files[1]
+dat = d
+for ( i in 2:length(files)){
+  #i=1
+  d = read.csv( file.path(fold, files[i]))
+  d$name = files[i]
+  dat = rbind( dat, d)
+}
+
+dat$t.value= round(dat$t.value , 3)
+dat$p.value =round(dat$p.value,  4)
+dat$p.value = as.character(dat$p.value)
+write.csv(dat , file = file.path ( PROJHOME, "Output", "Statistics" , "combinedstatstables.csv"))
+
+
+######## DIAGNOSTICS
+
+rm(list = ls())
+fold = file.path ( PROJHOME , "Output" , "Statistics" , "models")
+files= list.files(fold)
+par( mfrow = c(4,2))
+par( mar = c(2,2,2,2))
+for ( i in 1:8){
+  #i=1
+  load( file.path(fold, files[i]))
+  qqnorm(residuals(model), main=i)
+  qqline(residuals(model))
+}
+
+
+#### plots
+
+
+

@@ -1,0 +1,95 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+# Conflict scenarios and other last variables before analysis 
+
+```{R}
+
+# housekeeping
+rm(list = ls())
+
+library( robofalcon)
+
+# data
+
+{
+  load( file.path( PROJHOME , "Output" , "Topological", "REMrobofalcon-data.rda"))
+  dir.rel.ali = dat$align - dat$diff_head
+  dat$sig.cent = sign( dat$attract)
+  dat$sig.head = sign( dat$align)
+  dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1) # binary conflict scenario variable. Did you turn toward centroid or away from predator
+  dat$dir.rel.ali = dir.rel.ali * dat$conflict # Instanstaneous centroid attraction
+  dat$sign.diff = sign(dat$diff_head)
+  dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
+  dat$pigeon = as.character(dat$pigeon)
+  dat$group.num = as.character(dat$group.num)
+  dat$unique.flight = as.character(dat$unique.flight)
+  dat.coh = dat
+}
+
+{
+  
+  load( file.path( PROJHOME , "Output" , "Topological", "ALLrobofalcon-data.rda"))
+  dir.rel.ali = dat$align - dat$diff_head
+  dat$sig.cent = sign( dat$attract)
+  dat$sig.head = sign( dat$align)
+  dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1)
+  dat$dir.rel.ali = dir.rel.ali * dat$conflict
+  dat$sign.diff = sign(dat$diff_head)
+  dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
+  dat$pigeon = as.character(dat$pigeon)
+  dat$group.num = as.character(dat$group.num)
+  dat$unique.flight = as.character(dat$unique.flight)
+  dat$speed = get_dist(dat$lat,dat$lon, method = "speed" , hz = 5)
+  dat$turn.radius = dat$speed / abs(dat$diff_head)
+  dat$centrip = dat$speed^2 / dat$turn.radius # Centripetal acceleration
+  dat.coh$centrip = dat$centrip
+}
+
+# CONFLICT
+dat$sign.diff = sign(dat$diff_head)
+dat$diff_head[ abs(dat$diff_head) > 0.3] = NA # See supplemental for validation
+dat$dir.rel.ali[ abs(dat$dir.rel.ali)  > 0.3] = NA
+dat$diff_head_sharp = dat$diff_head
+dat$dir.rel.ali_sharp = dat$dir.rel.ali
+dat$diff_head_sharp[ abs(dat$diff_head_sharp) < 0.02] = NA # See supplemental for validation
+dat$dir.rel.ali_sharp[ abs(dat$dir.rel.ali_sharp) < 0.02] = NA
+dat.coh$diff_head_sharp = dat$diff_head_sharp
+dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
+
+
+# clockwise vs anticlockwise
+dat$sig.cent = sign( dat$attract)
+dat$sig.head = sign( -dat$turn2falchead)
+dat$sig.turn = sign( dat$diff_head)
+
+# conflict?
+dat$conflict = ( dat$sig.head != dat$sig.cent)
+con = which(dat$conflict == T)
+dat.con = dat[con,]
+dat.nocon = dat[-con,]
+dat.con$biased.cent=   dat.con$sig.turn ==   dat.con$sig.cent
+dat.nocon$biased.cent= dat.nocon$sig.turn == dat.nocon$sig.cent
+
+# # flocksize
+# load( file.path( PROJHOME, "Output" , "Statistics" , "Data" , "flock.sizes.rda" ))
+# dat.coh$flock.size = flock.sizes
+# dat$flock.size = flock.sizes
+
+# # time
+# load( file.path( PROJHOME, "Output", "Statistics" , "Data" , "ts.rda"))
+# dat.coh$t = ts
+# dat$t = ts
+
+# save 
+folderDS ( c ( "Output" , "FinalDataSet"))
+save ( dat    , file = file.path ( PROJHOME , "Output", "FinalDataSet", "ALLrobofalcon-data.rda"))
+save ( dat.coh, file = file.path ( PROJHOME , "Output", "FinalDataSet", "REMrobofalcon-data.rda"))
+
+
+```
+
