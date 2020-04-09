@@ -83,14 +83,14 @@ d = d[complete.cases(d),]
 
 # MODEL
 lmm1.1 = lme( diff_head_sharp ~
-              condition *attract*dist2cent +
-              condition *align*dist2cent +
-              cross.wind +
-              turn2home
-            , random = list( pigeon=~1,
-                             unique.flight =~1,
-                             group.num = ~1,
-                             small.big =~1), data = d, na.action = "na.fail" )
+                condition *attract*dist2cent +
+                condition *align*dist2cent +
+                cross.wind +
+                turn2home
+              , random = list( pigeon=~1,
+                               unique.flight =~1,
+                               group.num = ~1,
+                               small.big =~1), data = d, na.action = "na.fail" )
 
 # DIAGNOSTICS
 diagnostics.plot(lmm1.1)
@@ -192,7 +192,7 @@ library(EMAtools)
 
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
-load(file.path(PROJHOME,"output", "Aerodynamic variables" , "Speedvardat.rda"))
+load(file.path(PROJHOME,"output", "smaller-dataframes-for-git" , "Speedvardat.rda"))
 dat$speed.var = speed.vars
 
 # SUBSET
@@ -200,21 +200,21 @@ da = dat[sam16,]
 d =  da[,c("speed.var", "condition","small.big", "speed", "cross.wind","dist2site", "support.wind","unique.flight","group.num")]
 
 # Transform - see Supplemental
-b = MASS::boxcox((d$speed.var)  ~  condition +  small.big +
+b = MASS::boxcox((d$speed.var)  ~  condition *  small.big +
                    abs( cross.wind) +
                    support.wind, data = d)
 lamda=b$x
 lik=b$y
 bc = cbind(lamda, lik)
 head(bc[order(-lik),])
-d$trans.speed.var = (d$speed.var)^-0.181818
+cb =bc[order(-lik),]
+d$trans.speed.var = d$speed.var^cb[2,1] 
 
 # model
 d = d[complete.cases(d),]
 lmm4 = lme( trans.speed.var ~
-               condition *  small.big +
+              condition *  small.big +
               abs( cross.wind) +
-              log(dist2site+1) +
               support.wind
             , random = list( group.num=~1,
                              unique.flight =~1),
@@ -255,21 +255,19 @@ d = d[complete.cases(d),]
 # transform
 b = MASS::boxcox((d$centrip)  ~  condition * small.big +
                    abs(cross.wind) +
-                   support.wind +
-                   log(dist2site+1), data = d)
+                   support.wind , data = d)
 lamda=b$x
 lik=b$y
 bc = cbind(lamda, lik)
 head(bc[order(-lik),])
 cb =bc[order(-lik),]
-d$trans.centrip = d$centrip^cb[2,1]
+d$trans.centrip = d$centrip^cb[1,1]
 
 # MODEL
 lmm5 = lme( trans.centrip ~
               condition * small.big +
               abs(cross.wind) +
-              support.wind +
-              log(dist2site+1)
+              support.wind 
             , random = list( group.num=~1,
                              pigeon=~1,
                              unique.flight =~1), data = d,
@@ -306,11 +304,11 @@ d = d[complete.cases(d),]
 lmm6 = lme( speed ~
               condition * small.big +
               abs(cross.wind) +
-              log(dist2site+1) +
-              support.wind
-            , random = list( group.num=1,
-                               pigeon=~1,
-                             unique.flight =~1), data = d,
+              support.wind, 
+            random = list( 
+              group.num=~1,
+              pigeon=~1,
+              unique.flight =~1), data = d,
             na.action = "na.fail" )
 
 # Summary table
@@ -321,6 +319,7 @@ save.mixed.model(lmm6, d,"06_Speed.csv")
 ```
 
 # MODEL 7. FLOCK COHESION
+
 ```{R}
 #housekeeping
 rm(list = ls())
@@ -332,16 +331,20 @@ library(EMAtools)
 
 # LOAD DATA
 source( file.path(PROJHOME , "source", "source.r"))
+load( file.path(PROJHOME , "smaller-dataframes-for-git", "insta-grp-size.rda"))
+dat.coh$insta.grp.size = insta.grp.size
 
 # SUBSAMPLE
 d = dat.coh[sam27,]
-d = d[,c(vars.nofalc)]
+d = d[,c(vars.nofalc, "insta.grp.size")]
 d = d[complete.cases(d),]
 
 # MODEL
 lmm7 = lme( log(dist2cent+1) ~
-              small.big * condition
-            , random = list( unique.flight=~1, pigeon=~1), data = d, na.action = "na.fail" )
+              insta.grp.size * condition +
+              abs(cross.wind)+
+              support.wind
+            , random = list( group.num=~1,unique.flight=~1, pigeon=~1), data = d, na.action = "na.fail" )
 
 # Summary table
 summary(lmm7)
@@ -351,6 +354,7 @@ save.mixed.model(lmm7,d,"07_dist2cent-vs-condition.csv")
 ```
 
 # MODEL 8. NEAREST NEIGHBOUR DISTANCE
+
 ```{R}
 #housekeeping
 rm(list = ls())
@@ -359,37 +363,39 @@ rm(list = ls())
 library(ggplot2)
 library(nlme)
 library(EMAtools)
+library(robofalcon)
 
-# LOAD DATA 
+# LOAD DATA
 source( file.path(PROJHOME , "source", "source.r"))
+load( file.path(PROJHOME , "smaller-dataframes-for-git", "insta-grp-size.rda"))
+dat.coh$insta.grp.size = insta.grp.size
 
 # SUBSAMPLE
 d = dat.coh[sam26,]
-d = d[,c(vars.nofalc, "nn1dist")]
+d = d[,c(vars.nofalc, "insta.grp.size", "nn1dist")]
 d$nn1dist[d$nn1dist > 10] = NA # See supplemental for validation
+d = d[complete.cases(d),]
 
 # Transform
-b = MASS::boxcox((d$nn1dist+1)  ~ small.big * condition +
+b = MASS::boxcox((d$nn1dist+1)  ~ insta.grp.size * condition +
                    abs(cross.wind) +
-                   support.wind +
-                   log(dist2site+1), data = d)
+                   support.wind , data = d)
 lamda=b$x
 lik=b$y
 bc = cbind(lamda, lik)
 head(bc[order(-lik),])
 cb =bc[order(-lik),]
 d$trans.nn1 = d$nn1dist^cb[1,1]
-d$trans.nn1 = as.numeric(as.character(d$nn1dist^0.25))
+#d$trans.nn1 = as.numeric(as.character(d$nn1dist^0.25))
 d$trans.nn1[is.infinite(d$trans.nn1)] = NA
 d = d[complete.cases(d),]
 
 # MODEL
 lmm8 = lme( log( trans.nn1+1)~
-              small.big * condition  +
-            abs(cross.wind) +
-            support.wind +
-            log(dist2site+1)
-            , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+              insta.grp.size * condition  +
+              abs(cross.wind) +
+              support.wind 
+            , random = list( group.num=~1, unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
 
 # Summary table
 summary(lmm8)
@@ -401,33 +407,32 @@ save.mixed.model(lmm8,d,"08_nn1-vs-condition.csv")
 # MODEL 9. Proportion separated
 
 ```{R}
-fission.df = as.data.frame(fission.data)
-fission.df$fission = as.numeric(as.character(fission.df$fission))
-lmm1 = lme( fission ~
-              condition + flock.size 
-            , random = list( id=~1)
-                           , data = fission.df)
+#housekeeping
+rm(list = ls())
 
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+library(robofalcon)
+
+# LOAD DATA 
+load( file.path(PROJHOME , "smaller-dataframes-for-git", "fission.rda"))
+
+# MODEL
+lmm1 = lme( fission ~
+              condition * flock.size 
+            , random = list( id=~1)
+            , data = fission.df)
+
+# Summary table
 summary(lmm1)
 
-boxplot(fission.df$fission~fission.df$condition)
-boxplot(fission.df$fission~fission.df$flock.size)
-
-# descriptives 
-mean( fission.df$fission[fission.df$condition == "c"])
-  sd( fission.df$fission[fission.df$condition == "c"])
-mean( fission.df$fission[fission.df$condition == "p"])
-  sd( fission.df$fission[fission.df$condition == "p"])
-mean( fission.df$fission[fission.df$flock.size == "s"])
-  sd( fission.df$fission[fission.df$flock.size == "s"])
-mean( fission.df$fission[fission.df$flock.size == "b"])
-  sd( fission.df$fission[fission.df$flock.size == "b"])
-
-  
-save.mixed.model (lmm1, "fission.csv")
+# Save
+save.mixed.model (lmm1,fission.df, "09_fission.csv")
 ```
 
-# MODEL 9. Conflict scenarios
+# MODEL 10. Conflict scenarios
 
 ```{R}
 #housekeeping
@@ -454,7 +459,7 @@ d.con = dat.con[sam,c(vars,"biased.cent","dist2pred")]
 d.con = d.con[complete.cases(d.con),]
 
 # MODEL
-lmm9 = MASS::glmmPQL( biased.cent~
+lmm10 = MASS::glmmPQL( biased.cent~
                         dist2pred * small.big
                       , random = list( pigeon=~1,unique.flight =~1,
                                        group.num = ~1),
@@ -462,13 +467,13 @@ lmm9 = MASS::glmmPQL( biased.cent~
                       na.action = "na.fail" )
 
 # Summary table
-summary(lmm9)
+summary(lmm10)
 
 # Save
-save.mixed.model(lmm9 , d, "09_conflict.csv")
+save.mixed.model(lmm9 , d, "10_conflict.csv")
 ```
 
-# MODEL 10. No conflict
+# MODEL 11. No conflict
 
 ```{R}
 #housekeeping
@@ -496,11 +501,11 @@ d.con = d.con[complete.cases(d.con),]
 
 # MODEL
 lmm10 = MASS::glmmPQL( biased.cent~
-                        dist2pred * small.big
-                      , random = list( pigeon=~1,unique.flight =~1,
-                                       group.num = ~1),
-                      family = "binomial", data = d.con,
-                      na.action = "na.fail" )
+                         dist2pred * small.big
+                       , random = list( pigeon=~1,unique.flight =~1,
+                                        group.num = ~1),
+                       family = "binomial", data = d.con,
+                       na.action = "na.fail" )
 
 # Summary table
 summary(lmm10)
@@ -516,18 +521,18 @@ save.mixed.model(lmm10 , d, "10_noconflict.csv")
 
 d = dat[sam9, ]
 lmm10 = lme( dir.rel.ali_sharp~
-              condition * dist2cent +
-               small.big *condition +
-               cross.wind +
-               log(dist2site)
-            , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
-
-lmm10.1 = lme( dir.rel.ali_sharp~
                condition * dist2cent +
                small.big *condition +
                cross.wind +
                log(dist2site)
-             , random = list( unique.flight=~1), data = d, na.action = "na.omit" )
+             , random = list( unique.flight=~1, group.num = ~1, pigeon = ~1), data = d, na.action = "na.omit" )
+
+lmm10.1 = lme( dir.rel.ali_sharp~
+                 condition * dist2cent +
+                 small.big *condition +
+                 cross.wind +
+                 log(dist2site)
+               , random = list( unique.flight=~1), data = d, na.action = "na.omit" )
 AIC(lmm10)
 AIC(lmm10.1)
 diagnostics.plot(lmm10)
@@ -535,18 +540,18 @@ summary(lmm10)
 #save.mixed.model(lmm10, d, "selfish-herd-param.csv")
 
 lmm10.1 = lme( dir.rel.ali~
-               condition * dist2cent +
-               small.big *condition +
-               cross.wind +
-               log(dist2site)
-             , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+                 condition * dist2cent +
+                 small.big *condition +
+                 cross.wind +
+                 log(dist2site)
+               , random = list( unique.flight=~1, pigeon = ~1, group.num = ~1), data = d, na.action = "na.omit" )
 diagnostics.plot(lmm10.1)
 summary(lmm10.1)
 
 
 ```
 
- This model also shows that predator groups use more centroid attraction at higher distance to centroid.  
+This model also shows that predator groups use more centroid attraction at higher distance to centroid.  
 
 ```{R}
 ########### BIG TABLE

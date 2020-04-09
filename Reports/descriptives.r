@@ -33,3 +33,14 @@ length(which ( vec2==T))
 # median distance to centroid - small large
 median ( dat.coh$dist2cent [ dat$small.big == "s"], na.rm = T)
 median ( dat.coh$dist2cent [ dat$small.big == "b"], na.rm = T)
+
+# Proportion separated
+load( file.path(PROJHOME , "smaller-dataframes-for-git", "fission.rda")) 
+mean( fission.df$fission[fission.df$condition == "c"])
+sd( fission.df$fission[fission.df$condition == "c"])
+mean( fission.df$fission[fission.df$condition == "p"])
+sd( fission.df$fission[fission.df$condition == "p"])
+mean( fission.df$fission[fission.df$flock.size == "s"])
+sd( fission.df$fission[fission.df$flock.size == "s"])
+mean( fission.df$fission[fission.df$flock.size == "b"])
+sd( fission.df$fission[fission.df$flock.size == "b"])
