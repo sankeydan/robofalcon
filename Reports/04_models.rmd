@@ -1,0 +1,609 @@
+# All Models
+
+# What impacts turning angle deltaT? (or diff_head as it is called in these models) It is called diff_head because it is essentially the difference in heading from last timestep to the present angle.
+
+
+
+```{R}
+# make some new folders t0 save model data
+folderDS( c("Output", "Statistics" , "Tables"))
+folderDS( c("Output", "Statistics" , "Models"))
+```
+
+# Model 1. All recorded instances of diff_head, including turning and straight line flight. These results are reported in the supplemental. Table S4 in current version, labelled as "Turn angle - all data"
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+library(robofalcon)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSET DATA
+d = dat[sam9,] # subsample every 9 datapoints to correct for autocorrelation. See supplemental material. 
+
+# REMOVE VARIABLES NOT OF INTEREST TO THE MODEL
+d = d[,vars.nofalc]
+d = d[complete.cases(d),]
+
+# RUN MODEL
+lmm1 = lme( diff_head ~
+              condition *attract*dist2cent +
+              condition *align*dist2cent +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1), data = d, na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm1 )
+summary(lmm1)
+
+# SAVE
+save.mixed.model( lmm1 , d, "Turn-angle-all.csv") # look at this function in folder /R to see all output statistics, or refer to supplemental Table S4 where they are all pasted. 
+```
+
+# Model 1.1. Turning angles after removing straight line flight. See supplemental for validation of this approach. Hint: there are no differences in the direction or significance of the statistics. These results are reported in the main text
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSET DATA
+d = dat[sam9,]
+d = d[,c(vars.nofalc)]
+d = d[complete.cases(d),]
+
+# MODEL
+lmm1.1 = lme( diff_head_sharp ~
+              condition *attract*dist2cent +
+              condition *align*dist2cent +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1), data = d, na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm1.1)
+summary( lmm1.1 )
+performance::r2(lmm1.1)
+
+# SAVE
+save.mixed.model( lmm1.1 ,d, "01_Turn-angle-sharp.csv") # numbered with 01_ because this is in main manuscript
+```
+
+# MODEL 2. Cohesive flocks. These results are in main manuscript
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSET DATA
+d.coh = dat.coh[sam9,]
+d.coh = d.coh[,names(d.coh) %in% c( vars.nofalc)]
+d.coh = d.coh[complete.cases(d.coh),]
+
+# MODEL
+lmm2 = lme( diff_head_sharp ~
+              condition *attract*dist2cent +
+              condition *align *dist2cent+
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big =~1),data = d.coh, na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm2)
+summary(lmm2)
+
+# SAVE
+save.mixed.model( lmm2 ,d.coh, "02_Turn-angle-coh.csv")
+```
+
+# MODEL 3. WITH FALCON VARIABLES. Results are reported in main manuscript
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSET - ALL VARIABLES - so now including FALCON
+d = dat[sam9,]
+d = d[,vars]
+d = d[complete.cases(d),]
+
+# MODEL
+lmm3 = lme( diff_head_sharp ~
+              attract * dist2cent +
+              align * dist2cent +
+              turn2falchead +
+              turn2falcpos +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             unique.flight =~1,
+                             group.num = ~1,
+                             small.big=~1), data = d,
+            na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm3)
+summary(lmm3)
+
+# SAVE
+save.mixed.model( lmm3 , d, "03_Turn-angle-falc.csv")
+```
+
+# MODEL 4. Speed variance
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+load(file.path(PROJHOME,"output", "Aerodynamic variables" , "Speedvardat.rda"))
+dat$speed.var = speed.vars
+
+# SUBSET
+da = dat[sam16,]
+d =  da[,c("speed.var", "condition","small.big", "speed", "cross.wind","dist2site", "support.wind","unique.flight","group.num")]
+
+# Transform - see Supplemental
+b = MASS::boxcox((d$speed.var)  ~  condition +  small.big +
+                   abs( cross.wind) +
+                   support.wind, data = d)
+lamda=b$x
+lik=b$y
+bc = cbind(lamda, lik)
+head(bc[order(-lik),])
+d$trans.speed.var = (d$speed.var)^-0.181818
+
+# model
+d = d[complete.cases(d),]
+lmm4 = lme( trans.speed.var ~
+               condition *  small.big +
+              abs( cross.wind) +
+              log(dist2site+1) +
+              support.wind
+            , random = list( group.num=~1,
+                             unique.flight =~1),
+            data = d, na.action = "na.fail" )
+
+# summary table
+summary(lmm4)
+
+# save
+save.mixed.model(lmm4, d,"04_Speedvariance.csv")
+```
+
+# MODEL 5. CENTRIPETAL ACCELERATION
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA 
+source( file.path(PROJHOME , "source", "source.r"))
+
+# subsample
+d = dat[sam6,]
+d = d[,vars.nofalc]
+
+# cut off - See supplemental
+d$centrip [d$centrip < 0.01] = NA
+d$centrip [d$centrip > 13 ] = NA
+
+# remove NA
+d = d[complete.cases(d),]
+
+# transform
+b = MASS::boxcox((d$centrip)  ~  condition * small.big +
+                   abs(cross.wind) +
+                   support.wind +
+                   log(dist2site+1), data = d)
+lamda=b$x
+lik=b$y
+bc = cbind(lamda, lik)
+head(bc[order(-lik),])
+cb =bc[order(-lik),]
+d$trans.centrip = d$centrip^cb[2,1]
+
+# MODEL
+lmm5 = lme( trans.centrip ~
+              condition * small.big +
+              abs(cross.wind) +
+              support.wind +
+              log(dist2site+1)
+            , random = list( group.num=~1,
+                             pigeon=~1,
+                             unique.flight =~1), data = d,
+            na.action = "na.fail" )
+
+# summary table
+summary(lmm5)
+
+# Save
+save.mixed.model(lmm5, d,"05_centrip.csv")
+```
+
+# MODEL 6. SPEED
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA 
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSAMPLE
+d = dat.coh[sam24,]
+d = d[,vars.nofalc]
+d$speed[d$speed> 35] = NA # See supplemental
+d$speed[d$speed< 5]  = NA
+d = d[complete.cases(d),]
+
+# MODEL
+lmm6 = lme( speed ~
+              condition * small.big +
+              abs(cross.wind) +
+              log(dist2site+1) +
+              support.wind
+            , random = list( group.num=1,
+                               pigeon=~1,
+                             unique.flight =~1), data = d,
+            na.action = "na.fail" )
+
+# Summary table
+summary(lmm6)
+
+# Save
+save.mixed.model(lmm6, d,"06_Speed.csv")
+```
+
+# MODEL 7. FLOCK COHESION
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSAMPLE
+d = dat.coh[sam27,]
+d = d[,c(vars.nofalc)]
+d = d[complete.cases(d),]
+
+# MODEL
+lmm7 = lme( log(dist2cent+1) ~
+              small.big * condition
+            , random = list( unique.flight=~1, pigeon=~1), data = d, na.action = "na.fail" )
+
+# Summary table
+summary(lmm7)
+
+# Save
+save.mixed.model(lmm7,d,"07_dist2cent-vs-condition.csv")
+```
+
+# MODEL 8. NEAREST NEIGHBOUR DISTANCE
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA 
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSAMPLE
+d = dat.coh[sam26,]
+d = d[,c(vars.nofalc, "nn1dist")]
+d$nn1dist[d$nn1dist > 10] = NA # See supplemental for validation
+
+# Transform
+b = MASS::boxcox((d$nn1dist+1)  ~ small.big * condition +
+                   abs(cross.wind) +
+                   support.wind +
+                   log(dist2site+1), data = d)
+lamda=b$x
+lik=b$y
+bc = cbind(lamda, lik)
+head(bc[order(-lik),])
+cb =bc[order(-lik),]
+d$trans.nn1 = d$nn1dist^cb[1,1]
+d$trans.nn1 = as.numeric(as.character(d$nn1dist^0.25))
+d$trans.nn1[is.infinite(d$trans.nn1)] = NA
+d = d[complete.cases(d),]
+
+# MODEL
+lmm8 = lme( log( trans.nn1+1)~
+              small.big * condition  +
+            abs(cross.wind) +
+            support.wind +
+            log(dist2site+1)
+            , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+
+# Summary table
+summary(lmm8)
+
+# Save
+save.mixed.model(lmm8,d,"08_nn1-vs-condition.csv")
+```
+
+# MODEL 9. Proportion separated
+
+```{R}
+fission.df = as.data.frame(fission.data)
+fission.df$fission = as.numeric(as.character(fission.df$fission))
+lmm1 = lme( fission ~
+              condition + flock.size 
+            , random = list( id=~1)
+                           , data = fission.df)
+
+summary(lmm1)
+
+boxplot(fission.df$fission~fission.df$condition)
+boxplot(fission.df$fission~fission.df$flock.size)
+
+# descriptives 
+mean( fission.df$fission[fission.df$condition == "c"])
+  sd( fission.df$fission[fission.df$condition == "c"])
+mean( fission.df$fission[fission.df$condition == "p"])
+  sd( fission.df$fission[fission.df$condition == "p"])
+mean( fission.df$fission[fission.df$flock.size == "s"])
+  sd( fission.df$fission[fission.df$flock.size == "s"])
+mean( fission.df$fission[fission.df$flock.size == "b"])
+  sd( fission.df$fission[fission.df$flock.size == "b"])
+
+  
+save.mixed.model (lmm1, "fission.csv")
+```
+
+# MODEL 9. Conflict scenarios
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA 
+source( file.path(PROJHOME , "source", "source.r"))
+load( file.path ( PROJHOME , "Output", "ConflictScen", "DatCon.rda"))
+
+# Autocorrelation - different to other autocorrelation, as timesteps are already staggered. See Supplemental.
+ts.acf <- acf(as.numeric(na.omit(dat.con$biased.cent)))
+alpha = 0.95
+conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+aep = which(ts.acf$acf < conf.lim)[1]
+
+# SUBSAMPLE
+sam = seq(1,nrow(dat.con),aep)
+d.con = dat.con[sam,c(vars,"biased.cent","dist2pred")]
+d.con = d.con[complete.cases(d.con),]
+
+# MODEL
+lmm9 = MASS::glmmPQL( biased.cent~
+                        dist2pred * small.big
+                      , random = list( pigeon=~1,unique.flight =~1,
+                                       group.num = ~1),
+                      family = "binomial", data = d.con,
+                      na.action = "na.fail" )
+
+# Summary table
+summary(lmm9)
+
+# Save
+save.mixed.model(lmm9 , d, "09_conflict.csv")
+```
+
+# MODEL 10. No conflict
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA 
+source( file.path(PROJHOME , "source", "source.r"))
+load( file.path ( PROJHOME , "Output", "ConflictScen", "DatNoCon.rda"))
+
+# Autocorrelation
+ts.acf <- acf(as.numeric(na.omit(dat.nocon$biased.cent)))
+alpha = 0.95
+conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
+aep = which(ts.acf$acf < conf.lim)[1]
+sam = seq(1,nrow(dat.nocon),aep)
+
+# SUBSET
+d.con = dat.nocon[sam,c(vars,"biased.cent","dist2pred")]
+d.con = d.con[complete.cases(d.con),]
+
+# MODEL
+lmm10 = MASS::glmmPQL( biased.cent~
+                        dist2pred * small.big
+                      , random = list( pigeon=~1,unique.flight =~1,
+                                       group.num = ~1),
+                      family = "binomial", data = d.con,
+                      na.action = "na.fail" )
+
+# Summary table
+summary(lmm10)
+
+# Save
+save.mixed.model(lmm10 , d, "10_noconflict.csv")
+```
+
+# Do pigeons differ in their selfishness? Seeing if selfish herd parameter (dir.rel.ali) is a better model with random intercepts or not will tell us. If the model with random intercepts for each pigeon is a better model, they might be more/less selfish than one another. If the AICs are similar, they are using the selfish herd parameter to a similar extent. See discussion in supplemental. 
+
+
+```{R}
+
+d = dat[sam9, ]
+lmm10 = lme( dir.rel.ali_sharp~
+              condition * dist2cent +
+               small.big *condition +
+               cross.wind +
+               log(dist2site)
+            , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+
+lmm10.1 = lme( dir.rel.ali_sharp~
+               condition * dist2cent +
+               small.big *condition +
+               cross.wind +
+               log(dist2site)
+             , random = list( unique.flight=~1), data = d, na.action = "na.omit" )
+AIC(lmm10)
+AIC(lmm10.1)
+diagnostics.plot(lmm10)
+summary(lmm10)
+#save.mixed.model(lmm10, d, "selfish-herd-param.csv")
+
+lmm10.1 = lme( dir.rel.ali~
+               condition * dist2cent +
+               small.big *condition +
+               cross.wind +
+               log(dist2site)
+             , random = list( unique.flight=~1, pigeon = ~1), data = d, na.action = "na.omit" )
+diagnostics.plot(lmm10.1)
+summary(lmm10.1)
+
+
+```
+
+ This model also shows that predator groups use more centroid attraction at higher distance to centroid.  
+
+```{R}
+########### BIG TABLE
+
+rm(list = ls())
+fold = file.path ( PROJHOME , "Output" , "Statistics" , "Tables")
+files = list.files(fold)
+d = read.csv( file.path(fold, files[1]))
+d$name = files[1]
+dat = d
+for ( i in 1:length(files)){
+  #i=1
+  d = read.csv( file.path(fold, files[i]))
+  d$name = files[i]
+  dat = rbind( dat, d)
+}
+
+for ( i in 1:ncol(dat)){
+  dat[,i] = round(as.numeric(as.character(dat[,i])),3)
+}
+
+dat$p.value = as.character(dat$p.value)
+folderDS(c("Output", "Statistics"))
+write.csv(dat , file = file.path ( PROJHOME, "Output", "Statistics" , "combinedstatstables.csv"))
+```
+
+```{R}
+######## DIAGNOSTICS
+
+rm(list = ls())
+fold = file.path ( PROJHOME , "Output" , "Statistics" , "models")
+files= list.files(fold)
+par( mfrow = c(4,2))
+par( mar = c(2,2,2,2))
+for ( i in 1:8){
+  #i=1
+  load( file.path(fold, files[i]))
+  qqnorm(residuals(model), main=i)
+  qqline(residuals(model))
+}
+
+```
+
+## DESCRIPTIVES
+
+```{R}
+median ( d$speed.var[d$condition == "p"], na.rm=T)
+median ( d$speed.var[d$condition == "c"], na.rm=T)
+
+median ( d$centrip[d$condition == "p"], na.rm=T)
+median ( d$centrip[d$condition == "c"], na.rm=T)
+
+median( dat$speed[ dat$condition == "p" & dat$small.big == "b"],na.rm=T)
+median( dat$speed[ dat$condition == "p" & dat$small.big == "s"],na.rm=T)
+
+median( dat$speed[ dat$condition == "c" & dat$small.big == "b"],na.rm=T)
+median( dat$speed[ dat$condition == "c" & dat$small.big == "s"],na.rm=T)
+```
+
+

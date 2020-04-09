@@ -32,7 +32,6 @@ library( robofalcon)
 }
 
 {
-  
   load( file.path( PROJHOME , "Output" , "Topological", "ALLrobofalcon-data.rda"))
   dir.rel.ali = dat$align - dat$diff_head
   dat$sig.cent = sign( dat$attract)
@@ -75,21 +74,12 @@ dat.nocon = dat[-con,]
 dat.con$biased.cent=   dat.con$sig.turn ==   dat.con$sig.cent
 dat.nocon$biased.cent= dat.nocon$sig.turn == dat.nocon$sig.cent
 
-# # flocksize
-# load( file.path( PROJHOME, "Output" , "Statistics" , "Data" , "flock.sizes.rda" ))
-# dat.coh$flock.size = flock.sizes
-# dat$flock.size = flock.sizes
-
-# # time
-# load( file.path( PROJHOME, "Output", "Statistics" , "Data" , "ts.rda"))
-# dat.coh$t = ts
-# dat$t = ts
-
 # save 
 folderDS ( c ( "Output" , "FinalDataSet"))
+folderDS ( c ( "Output" , "ConflictScen"))
 save ( dat    , file = file.path ( PROJHOME , "Output", "FinalDataSet", "ALLrobofalcon-data.rda"))
 save ( dat.coh, file = file.path ( PROJHOME , "Output", "FinalDataSet", "REMrobofalcon-data.rda"))
-
-
+save ( dat.con  , file = file.path ( PROJHOME , "Output", "ConflictScen", "DatCon.rda"))
+save ( dat.nocon, file = file.path ( PROJHOME , "Output", "ConflictScen", "DatNoCon.rda"))
 ```
 

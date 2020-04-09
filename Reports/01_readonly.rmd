@@ -651,6 +651,76 @@ for ( i in 9:length(files)){
 }
 ```
 
+## SPEED VARIANCE 
+
+```{R}
+
+{ # skip to loop
+  
+  # housekeeping
+  rm(list = ls())
+  
+  # libraries
+  library(robofalcon)
+  library(stringr)
+  library(lme4)
+  library(nlme)
+  
+  
+  # files / folders 
+  fold = file.path(PROJHOME, "Output", "gGPS" , "site-radius500")
+  files = list.files(fold)
+  spl = str_split_fixed(files, "\\.",12)
+  
+  # empty objects 
+  speed.vars = vector()
+  ts = vector()
+}
+
+# loop
+for ( i in 9:length(files)){ # not training flights
+  #i=9
+  # data
+  load( file.path( fold, files[i]))
+  
+  # if predator
+  if ( spl[i,2] == "p"){
+    data = data.list[[1]]
+  }
+  
+  # dims
+  dims = dim(data)
+  
+  # speed 
+  speeds = apply ( data , 3, function ( x){
+    get_dist( x[,1],x[,2],hz = 5,method = "speed")
+  })
+  
+
+  # speed variance
+  speed.var = c( apply( speeds, 1,function(x){ 
+    x [ x<5 ]= NA
+    x [ x>33]=NA
+      sd(x,na.rm = T)/mean(x,na.rm = T)
+    }) , rep( NA,  dims[1]*(dims[3]-1) )) # object now length of total rows
+  
+  # add to dat
+  speed.vars = c(speed.vars,speed.var)
+
+  # takestock
+  #print(paste (i , "/" , length(files)))
+}
+
+
+
+
+
+
+# Save
+folderDS( c( "smaller-dataframes-for-git"))
+save( speed.vars, file = file.path(PROJHOME, "smaller-dataframes-for-git" , "Speedvardat.rda"))
+```
+
 # plot_map? 
 
 ```{R}
@@ -978,5 +1048,84 @@ save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
 
 # take a look
 head(dat)
+```
+
+
+# Proportion separated
+
+```{R}
+{ # skip to loop
+  
+  # housekeeping
+  rm(list = ls())
+  
+  # libraries
+  library(robofalcon)
+  library(stringr)
+  library(lme4)
+  library(nlme)
+  
+  # files / folders 
+  fold = file.path(PROJHOME, "Output", "dataremovedoutliers")
+  files = list.files(fold)
+  spl = str_split_fixed(files, "\\.",12)
+
+}
+
+fission.data = matrix( NA, 0, 4, dimnames =  list( NULL, c("flock.size", "condition" , "id" , "fission")))
+# loop
+  k = 1
+for ( i in 9:length(files)){
+  #i=9
+  # data
+  load( file.path( fold, files[i]))
+  
+  data = data.list[[1]]
+  dims = dim(data)
+  names = dimnames(data)[[3]]
+
+  for (j in 1:dims[3]){
+    #j=4
+      fission.data = rbind( fission.data, rep(NA,ncol(fission.data)))
+    fission.data[k,"fission"] = length( which ( is.na ( data[,"lat",j])))/dims[1]
+    fission.data[k,"id"] = names[j]
+    fission.data[k,"flock.size"] = spl[i,7]
+    fission.data[k,"condition"] = spl[i,2]
+    k = k+1
+  }
+}
+
+
+
+save ( fission.df , file = file.path (PROJHOME , "Figures", "FigureData" , "fission.rda"))
+```
+
+# Descriptives. Exact numbers of each pigeon, condition, 
+```{R}
+# housekeeping
+rm(list = ls())
+
+# folders/ files
+fold = file.path ( PROJHOME , "Data" , "Pigeon")
+files = list.files ( fold)
+
+# matrix of flights
+mat = stringr::str_split_fixed(files, "\\." , 12)
+mat = as.data.frame(mat)
+names(mat) = c("unique.flight", "pigeon", "condition", "groupID", "flight.num", "small.big", "day", "month", "gps", "acc1", "acc2", "filetype")
+levels(mat$condition) = droplevels(mat$condition)
+tb = table(mat$pigeon, mat$groupID)[,1:4]
+group.id = apply(tb, 1, which.max )
+
+# table
+cb = cbind( t(table( mat$condition,mat$pigeon, mat$small.big)[1:2,,1]),
+t(table( mat$condition,mat$pigeon, mat$small.big)[1:2,,2]))
+cb = as.data.frame(cb)
+cb$id = rownames(cb)
+cb$group.id = group.id
+
+# save
+folderDS( c("Output", "descriptives"))
+write.csv(cb, file = file.path(PROJHOME , "Output" , "descriptives" , "eachPidge_flightsperCondition_table.csv"))
 ```
 

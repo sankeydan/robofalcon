@@ -1749,53 +1749,75 @@ summary {
 
 
 <!-- rnb-text-begin -->
-<div id="analysing-time-lags" class="section level1">
-<h1>Analysing time lags</h1>
+<div id="conflict-scenarios-and-other-last-variables-before-analysis" class="section level1">
+<h1>Conflict scenarios and other last variables before analysis</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBob3VzZWtlZXBpbmdcbnJtKGxpc3QgPSBscygpKVxuXG4jIG9iamVjdHNcbm9ubHkucmVtYWluaW5nID0gRlxuXG4jIGZpbGVzL2ZvbGRlcnNcbmlmICggb25seS5yZW1haW5pbmcpe1xuICBsb2FkKCBmaWxlLnBhdGgoIFBST0pIT01FICwgXCJPdXRwdXRcIiAsIFwiVG9wb2xvZ2ljYWxcIiwgXCJSRU1yb2JvZmFsY29uLWRhdGEucmRhXCIpKVxufSBlbHNle1xuICBsb2FkKCBmaWxlLnBhdGgoIFBST0pIT01FICwgXCJPdXRwdXRcIiAsIFwiVG9wb2xvZ2ljYWxcIiwgXCJBTExyb2JvZmFsY29uLWRhdGEucmRhXCIpKVxufVxuXG5cblxud2hpID0gd2hpY2ggKCBuYW1lcyAoZGF0KSA9PSBcImxhZy01XCIpXG52YXJzID0gYyhcInR1cm4yZmFsY3Bvc1wiLFwidHVybjJmYWxjaGVhZFwiLFwiYWxpZ25cIixcImF0dHJhY3RcIixcInR1cm4yaG9tZVwiKVxucnVuID0gOFxubWF0ID0gbWF0cml4KE5BLCBydW4sIDUsIGRpbW5hbWVzID0gbGlzdCggbmFtZXMoZGF0KVt3aGk6KHdoaSsocnVuLTEpKV0sXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB2YXJzKSlcbmZvciAoIGkgaW4gMTpydW4pe1xuICAjaT0xXG4gIGZvciAoIGogaW4gMTpsZW5ndGgodmFycykpe1xuICAgICNqPTFcbiAgICBtYXRbaSxqXSA9IHN1bW1hcnkoIGxtKGRhdFssKHdoaS0xK2kpXSB+IGRhdFssdmFyc1tqXV0pKSRjb2VmZlsyLFwidCB2YWx1ZVwiXVxuICB9XG59XG5cbmxhZ3MgPSBzZXEoLTUsMiwxKVxubGFnbmFtID0gcGFzdGUwKFwibGFnXCIsbGFncylcblxuZGF0LjQucGxvdCA9IGxpc3QobGFnbmFtLCBtYXQpXG5cbnNhdmUoIGRhdC40LnBsb3QsIGZpbGUgPSBmaWxlLnBhdGgoUFJPSkhPTUUsIFwiRmlndXJlc1wiLCBcIkZpZ3VyZURhdGFcIiwgXCJsYWdzX2FzX3ByZWRpY3RvcnNfb2ZfdHVyblwiKSlcbnBsb3QoZGF0LjQucGxvdFtbMl1dWywxXSlcbmBgYCJ9 -->
-<pre class="r"><code># housekeeping
-rm(list = ls())
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG4jIGhvdXNla2VlcGluZ1xuXG5saWJyYXJ5KCByb2JvZmFsY29uKVxuIyBkYXRhXG57XG4gIGxvYWQoIGZpbGUucGF0aCggUFJPSkhPTUUgLCBcIk91dHB1dFwiICwgXCJUb3BvbG9naWNhbFwiLCBcIlJFTXJvYm9mYWxjb24tZGF0YS5yZGFcIikpXG4gIGRpci5yZWwuYWxpID0gZGF0JGFsaWduIC0gZGF0JGRpZmZfaGVhZFxuICBkYXQkc2lnLmNlbnQgPSBzaWduKCBkYXQkYXR0cmFjdClcbiAgZGF0JHNpZy5oZWFkID0gc2lnbiggZGF0JGFsaWduKVxuICBkYXQkY29uZmxpY3QgPSBpZmVsc2UoIGRhdCRzaWcuaGVhZCAhPSBkYXQkc2lnLmNlbnQsIDEsLTEpICMgYmluYXJ5IGNvbmZsaWN0IHNjZW5hcmlvIHZhcmlhYmxlLiBEaWQgeW91IHR1cm4gdG93YXJkIGNlbnRyb2lkIG9yIGF3YXkgZnJvbSBwcmVkYXRvclxuICBkYXQkZGlyLnJlbC5hbGkgPSBkaXIucmVsLmFsaSAqIGRhdCRjb25mbGljdCAjIEluc3RhbnN0YW5lb3VzIGNlbnRyb2lkIGF0dHJhY3Rpb25cbiAgZGF0JHNpZ24uZGlmZiA9IHNpZ24oZGF0JGRpZmZfaGVhZClcbiAgZGF0JHNxcnRfZGlmZl9oZWFkID0gZGF0JHNpZ24uZGlmZiAqIHNxcnQoYWJzKGRhdCRkaWZmX2hlYWQpKVxuICBkYXQkcGlnZW9uID0gYXMuY2hhcmFjdGVyKGRhdCRwaWdlb24pXG4gIGRhdCRncm91cC5udW0gPSBhcy5jaGFyYWN0ZXIoZGF0JGdyb3VwLm51bSlcbiAgZGF0JHVuaXF1ZS5mbGlnaHQgPSBhcy5jaGFyYWN0ZXIoZGF0JHVuaXF1ZS5mbGlnaHQpXG4gIGRhdC5jb2ggPSBkYXRcbn1cblxue1xuICBsb2FkKCBmaWxlLnBhdGgoIFBST0pIT01FICwgXCJPdXRwdXRcIiAsIFwiVG9wb2xvZ2ljYWxcIiwgXCJBTExyb2JvZmFsY29uLWRhdGEucmRhXCIpKVxuICBkaXIucmVsLmFsaSA9IGRhdCRhbGlnbiAtIGRhdCRkaWZmX2hlYWRcbiAgZGF0JHNpZy5jZW50ID0gc2lnbiggZGF0JGF0dHJhY3QpXG4gIGRhdCRzaWcuaGVhZCA9IHNpZ24oIGRhdCRhbGlnbilcbiAgZGF0JGNvbmZsaWN0ID0gaWZlbHNlKCBkYXQkc2lnLmhlYWQgIT0gZGF0JHNpZy5jZW50LCAxLC0xKVxuICBkYXQkZGlyLnJlbC5hbGkgPSBkaXIucmVsLmFsaSAqIGRhdCRjb25mbGljdFxuICBkYXQkc2lnbi5kaWZmID0gc2lnbihkYXQkZGlmZl9oZWFkKVxuICBkYXQkc3FydF9kaWZmX2hlYWQgPSBkYXQkc2lnbi5kaWZmICogc3FydChhYnMoZGF0JGRpZmZfaGVhZCkpXG4gIGRhdCRwaWdlb24gPSBhcy5jaGFyYWN0ZXIoZGF0JHBpZ2VvbilcbiAgZGF0JGdyb3VwLm51bSA9IGFzLmNoYXJhY3RlcihkYXQkZ3JvdXAubnVtKVxuICBkYXQkdW5pcXVlLmZsaWdodCA9IGFzLmNoYXJhY3RlcihkYXQkdW5pcXVlLmZsaWdodClcbiAgZGF0JHNwZWVkID0gZ2V0X2Rpc3QoZGF0JGxhdCxkYXQkbG9uLCBtZXRob2QgPSBcInNwZWVkXCIgLCBoeiA9IDUpXG4gIGRhdCR0dXJuLnJhZGl1cyA9IGRhdCRzcGVlZCAvIGFicyhkYXQkZGlmZl9oZWFkKVxuICBkYXQkY2VudHJpcCA9IGRhdCRzcGVlZF4yIC8gZGF0JHR1cm4ucmFkaXVzICMgQ2VudHJpcGV0YWwgYWNjZWxlcmF0aW9uXG4gIGRhdC5jb2gkY2VudHJpcCA9IGRhdCRjZW50cmlwXG59XG5cbiMgQ09ORkxJQ1RcbmRhdCRkaWZmX2hlYWRbIGFicyhkYXQkZGlmZl9oZWFkKSA+IDAuM10gPSBOQSAjIFNlZSBzdXBwbGVtZW50YWwgZm9yIHZhbGlkYXRpb25cbmRhdCRkaXIucmVsLmFsaVsgYWJzKGRhdCRkaXIucmVsLmFsaSkgID4gMC4zXSA9IE5BXG5kYXQkZGlmZl9oZWFkX3NoYXJwWyBhYnMoZGF0JGRpZmZfaGVhZF9zaGFycCkgPCAwLjAyXSA9IE5BICMgU2VlIHN1cHBsZW1lbnRhbCBmb3IgdmFsaWRhdGlvblxuZGF0JGRpci5yZWwuYWxpX3NoYXJwWyBhYnMoZGF0JGRpci5yZWwuYWxpX3NoYXJwKSA8IDAuMDJdID0gTkFcbmRhdCRzcXJ0X2RpZmZfaGVhZCA9IGRhdCRzaWduLmRpZmYgKiBzcXJ0KGFicyhkYXQkZGlmZl9oZWFkKSlcblxuIyBjbG9ja3dpc2UgdnMgYW50aWNsb2Nrd2lzZVxuZGF0JHNpZy5jZW50ID0gc2lnbiggZGF0JGF0dHJhY3QpXG5kYXQkc2lnLnR1cm4gPSBzaWduKCBkYXQkZGlmZl9oZWFkKVxuXG4jIGNvbmZsaWN0P1xuZGF0LmNvbiA9IGRhdFtjb24sXVxuZGF0Lm5vY29uID0gZGF0Wy1jb24sXVxuZGF0LmNvbiRiaWFzZWQuY2VudD0gICBkYXQuY29uJHNpZy50dXJuID09ICAgZGF0LmNvbiRzaWcuY2VudFxuXG4jIHNhdmUgXG5zYXZlICggZGF0LmNvaCwgZmlsZSA9IGZpbGUucGF0aCAoIFBST0pIT01FICwgXCJPdXRwdXRcIiwgXCJGaW5hbERhdGFTZXRcIiwgXCJSRU1yb2JvZmFsY29uLWRhdGEucmRhXCIpKVxuc2F2ZSAoIGRhdC5jb24gICwgZmlsZSA9IGZpbGUucGF0aCAoIFBST0pIT01FICwgXCJPdXRwdXRcIiwgXCJDb25mbGljdFNjZW5cIiwgXCJEYXRDb24ucmRhXCIpKVxuYGBgIn0= -->
+<pre class="r"><code>
+# housekeeping
 
-# objects
-only.remaining = F
-
-# files/folders
-if ( only.remaining){
+library( robofalcon)
+# data
+{
   load( file.path( PROJHOME , &quot;Output&quot; , &quot;Topological&quot;, &quot;REMrobofalcon-data.rda&quot;))
-} else{
+  dir.rel.ali = dat$align - dat$diff_head
+  dat$sig.cent = sign( dat$attract)
+  dat$sig.head = sign( dat$align)
+  dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1) # binary conflict scenario variable. Did you turn toward centroid or away from predator
+  dat$dir.rel.ali = dir.rel.ali * dat$conflict # Instanstaneous centroid attraction
+  dat$sign.diff = sign(dat$diff_head)
+  dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
+  dat$pigeon = as.character(dat$pigeon)
+  dat$group.num = as.character(dat$group.num)
+  dat$unique.flight = as.character(dat$unique.flight)
+  dat.coh = dat
+}
+
+{
   load( file.path( PROJHOME , &quot;Output&quot; , &quot;Topological&quot;, &quot;ALLrobofalcon-data.rda&quot;))
+  dir.rel.ali = dat$align - dat$diff_head
+  dat$sig.cent = sign( dat$attract)
+  dat$sig.head = sign( dat$align)
+  dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1)
+  dat$dir.rel.ali = dir.rel.ali * dat$conflict
+  dat$sign.diff = sign(dat$diff_head)
+  dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
+  dat$pigeon = as.character(dat$pigeon)
+  dat$group.num = as.character(dat$group.num)
+  dat$unique.flight = as.character(dat$unique.flight)
+  dat$speed = get_dist(dat$lat,dat$lon, method = &quot;speed&quot; , hz = 5)
+  dat$turn.radius = dat$speed / abs(dat$diff_head)
+  dat$centrip = dat$speed^2 / dat$turn.radius # Centripetal acceleration
+  dat.coh$centrip = dat$centrip
 }
 
+# CONFLICT
+dat$diff_head[ abs(dat$diff_head) &gt; 0.3] = NA # See supplemental for validation
+dat$dir.rel.ali[ abs(dat$dir.rel.ali)  &gt; 0.3] = NA
+dat$diff_head_sharp[ abs(dat$diff_head_sharp) &lt; 0.02] = NA # See supplemental for validation
+dat$dir.rel.ali_sharp[ abs(dat$dir.rel.ali_sharp) &lt; 0.02] = NA
+dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
 
+# clockwise vs anticlockwise
+dat$sig.cent = sign( dat$attract)
+dat$sig.turn = sign( dat$diff_head)
 
-whi = which ( names (dat) == &quot;lag-5&quot;)
-vars = c(&quot;turn2falcpos&quot;,&quot;turn2falchead&quot;,&quot;align&quot;,&quot;attract&quot;,&quot;turn2home&quot;)
-run = 8
-mat = matrix(NA, run, 5, dimnames = list( names(dat)[whi:(whi+(run-1))],
-                                          vars))
-for ( i in 1:run){
-  #i=1
-  for ( j in 1:length(vars)){
-    #j=1
-    mat[i,j] = summary( lm(dat[,(whi-1+i)] ~ dat[,vars[j]]))$coeff[2,&quot;t value&quot;]
-  }
-}
+# conflict?
+dat.con = dat[con,]
+dat.nocon = dat[-con,]
+dat.con$biased.cent=   dat.con$sig.turn ==   dat.con$sig.cent
 
-lags = seq(-5,2,1)
-lagnam = paste0(&quot;lag&quot;,lags)
-
-dat.4.plot = list(lagnam, mat)
-
-save( dat.4.plot, file = file.path(PROJHOME, &quot;Figures&quot;, &quot;FigureData&quot;, &quot;lags_as_predictors_of_turn&quot;))
-plot(dat.4.plot[[2]][,1])</code></pre>
+# save 
+save ( dat.coh, file = file.path ( PROJHOME , &quot;Output&quot;, &quot;FinalDataSet&quot;, &quot;REMrobofalcon-data.rda&quot;))
+save ( dat.con  , file = file.path ( PROJHOME , &quot;Output&quot;, &quot;ConflictScen&quot;, &quot;DatCon.rda&quot;))</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIlIgTm90ZWJvb2siDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQoNCg0KIyBBbmFseXNpbmcgdGltZSBsYWdzDQoNCg0KYGBge1J9DQojIGhvdXNla2VlcGluZw0Kcm0obGlzdCA9IGxzKCkpDQoNCiMgb2JqZWN0cw0Kb25seS5yZW1haW5pbmcgPSBGDQoNCiMgZmlsZXMvZm9sZGVycw0KaWYgKCBvbmx5LnJlbWFpbmluZyl7DQogIGxvYWQoIGZpbGUucGF0aCggUFJPSkhPTUUgLCAiT3V0cHV0IiAsICJUb3BvbG9naWNhbCIsICJSRU1yb2JvZmFsY29uLWRhdGEucmRhIikpDQp9IGVsc2V7DQogIGxvYWQoIGZpbGUucGF0aCggUFJPSkhPTUUgLCAiT3V0cHV0IiAsICJUb3BvbG9naWNhbCIsICJBTExyb2JvZmFsY29uLWRhdGEucmRhIikpDQp9DQoNCg0KDQp3aGkgPSB3aGljaCAoIG5hbWVzIChkYXQpID09ICJsYWctNSIpDQp2YXJzID0gYygidHVybjJmYWxjcG9zIiwidHVybjJmYWxjaGVhZCIsImFsaWduIiwiYXR0cmFjdCIsInR1cm4yaG9tZSIpDQpydW4gPSA4DQptYXQgPSBtYXRyaXgoTkEsIHJ1biwgNSwgZGltbmFtZXMgPSBsaXN0KCBuYW1lcyhkYXQpW3doaTood2hpKyhydW4tMSkpXSwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZhcnMpKQ0KZm9yICggaSBpbiAxOnJ1bil7DQogICNpPTENCiAgZm9yICggaiBpbiAxOmxlbmd0aCh2YXJzKSl7DQogICAgI2o9MQ0KICAgIG1hdFtpLGpdID0gc3VtbWFyeSggbG0oZGF0Wywod2hpLTEraSldIH4gZGF0Wyx2YXJzW2pdXSkpJGNvZWZmWzIsInQgdmFsdWUiXQ0KICB9DQp9DQoNCmxhZ3MgPSBzZXEoLTUsMiwxKQ0KbGFnbmFtID0gcGFzdGUwKCJsYWciLGxhZ3MpDQoNCmRhdC40LnBsb3QgPSBsaXN0KGxhZ25hbSwgbWF0KQ0KDQpzYXZlKCBkYXQuNC5wbG90LCBmaWxlID0gZmlsZS5wYXRoKFBST0pIT01FLCAiRmlndXJlcyIsICJGaWd1cmVEYXRhIiwgImxhZ3NfYXNfcHJlZGljdG9yc19vZl90dXJuIikpDQpwbG90KGRhdC40LnBsb3RbWzJdXVssMV0pDQpgYGANCg0K</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlIgTm90ZWJvb2siDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KDQoNCg0KIyBDb25mbGljdCBzY2VuYXJpb3MgYW5kIG90aGVyIGxhc3QgdmFyaWFibGVzIGJlZm9yZSBhbmFseXNpcyANCg0KYGBge1J9DQoNCiMgaG91c2VrZWVwaW5nDQpybShsaXN0ID0gbHMoKSkNCg0KbGlicmFyeSggcm9ib2ZhbGNvbikNCg0KIyBkYXRhDQoNCnsNCiAgbG9hZCggZmlsZS5wYXRoKCBQUk9KSE9NRSAsICJPdXRwdXQiICwgIlRvcG9sb2dpY2FsIiwgIlJFTXJvYm9mYWxjb24tZGF0YS5yZGEiKSkNCiAgZGlyLnJlbC5hbGkgPSBkYXQkYWxpZ24gLSBkYXQkZGlmZl9oZWFkDQogIGRhdCRzaWcuY2VudCA9IHNpZ24oIGRhdCRhdHRyYWN0KQ0KICBkYXQkc2lnLmhlYWQgPSBzaWduKCBkYXQkYWxpZ24pDQogIGRhdCRjb25mbGljdCA9IGlmZWxzZSggZGF0JHNpZy5oZWFkICE9IGRhdCRzaWcuY2VudCwgMSwtMSkgIyBiaW5hcnkgY29uZmxpY3Qgc2NlbmFyaW8gdmFyaWFibGUuIERpZCB5b3UgdHVybiB0b3dhcmQgY2VudHJvaWQgb3IgYXdheSBmcm9tIHByZWRhdG9yDQogIGRhdCRkaXIucmVsLmFsaSA9IGRpci5yZWwuYWxpICogZGF0JGNvbmZsaWN0ICMgSW5zdGFuc3RhbmVvdXMgY2VudHJvaWQgYXR0cmFjdGlvbg0KICBkYXQkc2lnbi5kaWZmID0gc2lnbihkYXQkZGlmZl9oZWFkKQ0KICBkYXQkc3FydF9kaWZmX2hlYWQgPSBkYXQkc2lnbi5kaWZmICogc3FydChhYnMoZGF0JGRpZmZfaGVhZCkpDQogIGRhdCRwaWdlb24gPSBhcy5jaGFyYWN0ZXIoZGF0JHBpZ2VvbikNCiAgZGF0JGdyb3VwLm51bSA9IGFzLmNoYXJhY3RlcihkYXQkZ3JvdXAubnVtKQ0KICBkYXQkdW5pcXVlLmZsaWdodCA9IGFzLmNoYXJhY3RlcihkYXQkdW5pcXVlLmZsaWdodCkNCiAgZGF0LmNvaCA9IGRhdA0KfQ0KDQp7DQogIGxvYWQoIGZpbGUucGF0aCggUFJPSkhPTUUgLCAiT3V0cHV0IiAsICJUb3BvbG9naWNhbCIsICJBTExyb2JvZmFsY29uLWRhdGEucmRhIikpDQogIGRpci5yZWwuYWxpID0gZGF0JGFsaWduIC0gZGF0JGRpZmZfaGVhZA0KICBkYXQkc2lnLmNlbnQgPSBzaWduKCBkYXQkYXR0cmFjdCkNCiAgZGF0JHNpZy5oZWFkID0gc2lnbiggZGF0JGFsaWduKQ0KICBkYXQkY29uZmxpY3QgPSBpZmVsc2UoIGRhdCRzaWcuaGVhZCAhPSBkYXQkc2lnLmNlbnQsIDEsLTEpDQogIGRhdCRkaXIucmVsLmFsaSA9IGRpci5yZWwuYWxpICogZGF0JGNvbmZsaWN0DQogIGRhdCRzaWduLmRpZmYgPSBzaWduKGRhdCRkaWZmX2hlYWQpDQogIGRhdCRzcXJ0X2RpZmZfaGVhZCA9IGRhdCRzaWduLmRpZmYgKiBzcXJ0KGFicyhkYXQkZGlmZl9oZWFkKSkNCiAgZGF0JHBpZ2VvbiA9IGFzLmNoYXJhY3RlcihkYXQkcGlnZW9uKQ0KICBkYXQkZ3JvdXAubnVtID0gYXMuY2hhcmFjdGVyKGRhdCRncm91cC5udW0pDQogIGRhdCR1bmlxdWUuZmxpZ2h0ID0gYXMuY2hhcmFjdGVyKGRhdCR1bmlxdWUuZmxpZ2h0KQ0KICBkYXQkc3BlZWQgPSBnZXRfZGlzdChkYXQkbGF0LGRhdCRsb24sIG1ldGhvZCA9ICJzcGVlZCIgLCBoeiA9IDUpDQogIGRhdCR0dXJuLnJhZGl1cyA9IGRhdCRzcGVlZCAvIGFicyhkYXQkZGlmZl9oZWFkKQ0KICBkYXQkY2VudHJpcCA9IGRhdCRzcGVlZF4yIC8gZGF0JHR1cm4ucmFkaXVzICMgQ2VudHJpcGV0YWwgYWNjZWxlcmF0aW9uDQogIGRhdC5jb2gkY2VudHJpcCA9IGRhdCRjZW50cmlwDQp9DQoNCiMgQ09ORkxJQ1QNCmRhdCRzaWduLmRpZmYgPSBzaWduKGRhdCRkaWZmX2hlYWQpDQpkYXQkZGlmZl9oZWFkWyBhYnMoZGF0JGRpZmZfaGVhZCkgPiAwLjNdID0gTkEgIyBTZWUgc3VwcGxlbWVudGFsIGZvciB2YWxpZGF0aW9uDQpkYXQkZGlyLnJlbC5hbGlbIGFicyhkYXQkZGlyLnJlbC5hbGkpICA+IDAuM10gPSBOQQ0KZGF0JGRpZmZfaGVhZF9zaGFycCA9IGRhdCRkaWZmX2hlYWQNCmRhdCRkaXIucmVsLmFsaV9zaGFycCA9IGRhdCRkaXIucmVsLmFsaQ0KZGF0JGRpZmZfaGVhZF9zaGFycFsgYWJzKGRhdCRkaWZmX2hlYWRfc2hhcnApIDwgMC4wMl0gPSBOQSAjIFNlZSBzdXBwbGVtZW50YWwgZm9yIHZhbGlkYXRpb24NCmRhdCRkaXIucmVsLmFsaV9zaGFycFsgYWJzKGRhdCRkaXIucmVsLmFsaV9zaGFycCkgPCAwLjAyXSA9IE5BDQpkYXQuY29oJGRpZmZfaGVhZF9zaGFycCA9IGRhdCRkaWZmX2hlYWRfc2hhcnANCmRhdCRzcXJ0X2RpZmZfaGVhZCA9IGRhdCRzaWduLmRpZmYgKiBzcXJ0KGFicyhkYXQkZGlmZl9oZWFkKSkNCg0KDQojIGNsb2Nrd2lzZSB2cyBhbnRpY2xvY2t3aXNlDQpkYXQkc2lnLmNlbnQgPSBzaWduKCBkYXQkYXR0cmFjdCkNCmRhdCRzaWcuaGVhZCA9IHNpZ24oIC1kYXQkdHVybjJmYWxjaGVhZCkNCmRhdCRzaWcudHVybiA9IHNpZ24oIGRhdCRkaWZmX2hlYWQpDQoNCiMgY29uZmxpY3Q/DQpkYXQkY29uZmxpY3QgPSAoIGRhdCRzaWcuaGVhZCAhPSBkYXQkc2lnLmNlbnQpDQpjb24gPSB3aGljaChkYXQkY29uZmxpY3QgPT0gVCkNCmRhdC5jb24gPSBkYXRbY29uLF0NCmRhdC5ub2NvbiA9IGRhdFstY29uLF0NCmRhdC5jb24kYmlhc2VkLmNlbnQ9ICAgZGF0LmNvbiRzaWcudHVybiA9PSAgIGRhdC5jb24kc2lnLmNlbnQNCmRhdC5ub2NvbiRiaWFzZWQuY2VudD0gZGF0Lm5vY29uJHNpZy50dXJuID09IGRhdC5ub2NvbiRzaWcuY2VudA0KDQojIHNhdmUgDQpmb2xkZXJEUyAoIGMgKCAiT3V0cHV0IiAsICJGaW5hbERhdGFTZXQiKSkNCmZvbGRlckRTICggYyAoICJPdXRwdXQiICwgIkNvbmZsaWN0U2NlbiIpKQ0Kc2F2ZSAoIGRhdCAgICAsIGZpbGUgPSBmaWxlLnBhdGggKCBQUk9KSE9NRSAsICJPdXRwdXQiLCAiRmluYWxEYXRhU2V0IiwgIkFMTHJvYm9mYWxjb24tZGF0YS5yZGEiKSkNCnNhdmUgKCBkYXQuY29oLCBmaWxlID0gZmlsZS5wYXRoICggUFJPSkhPTUUgLCAiT3V0cHV0IiwgIkZpbmFsRGF0YVNldCIsICJSRU1yb2JvZmFsY29uLWRhdGEucmRhIikpDQpzYXZlICggZGF0LmNvbiAgLCBmaWxlID0gZmlsZS5wYXRoICggUFJPSkhPTUUgLCAiT3V0cHV0IiwgIkNvbmZsaWN0U2NlbiIsICJEYXRDb24ucmRhIikpDQpzYXZlICggZGF0Lm5vY29uLCBmaWxlID0gZmlsZS5wYXRoICggUFJPSkhPTUUgLCAiT3V0cHV0IiwgIkNvbmZsaWN0U2NlbiIsICJEYXROb0Nvbi5yZGEiKSkNCmBgYA0KDQo=</div>
 
 
 
@@ -1842,7 +1864,7 @@ $(document).ready(function () {
 <!-- code folding -->
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("03_analysing-time-lags.Rmd");
+  window.initializeSourceEmbed("03_conflict-scenario.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>

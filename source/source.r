@@ -1,7 +1,7 @@
 
 load(file.path ( PROJHOME , "Output", "FinalDataSet", "ALLrobofalcon-data.rda"))
 load(file.path ( PROJHOME , "Output", "FinalDataSet", "REMrobofalcon-data.rda"))
-vars = c( "log_diff_head",
+vars = c( "sqrt_diff_head",
           "diff_head",
           "diff_head_sharp",
           "condition",
@@ -19,7 +19,7 @@ vars = c( "log_diff_head",
           "pigeon",
           "Date",
           "group.num")
-vars.nofalc = c( "log_diff_head",
+vars.nofalc = c( "sqrt_diff_head",
                  "diff_head",
                  "diff_head_sharp",
                  "condition",
@@ -46,4 +46,5 @@ sam1 = seq( 1,nrow(dat), 1 )
 sam6 = seq( 1,nrow(dat), 6 )
 sam27 = seq( 1,nrow(dat), 27 )
 sam26 = seq( 1,nrow(dat), 26 )
+sam16 = seq( 1,nrow(dat),16)
 

@@ -7,7 +7,7 @@ output: html_notebook
 
 ## WELCOME R USER
 
-Firstly to use this package you need to use the "Install and restart" button in the Build tab above. 
+Firstly to use this package you need to click the "Install and restart" button in the Build tab above and right. 
 
 If you don't use RStudio, I hope you know how to do this yourself in base R
 
