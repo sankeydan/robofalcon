@@ -137,10 +137,10 @@ dat = dat.save
 if ( plot2pdf){
   dev.off()
 }
-```
+
 
 # Add alignment/ attraction to dataset
-```{R}
+
 
 dat$align = NA
 dat$attract = NA

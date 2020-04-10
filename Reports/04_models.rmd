@@ -619,37 +619,7 @@ folderDS(c("Output", "Statistics"))
 write.csv(dat , file = file.path ( PROJHOME, "Output", "Statistics" , "combinedstatstables.csv"))
 ```
 
-```{R}
-######## DIAGNOSTICS
 
-rm(list = ls())
-fold = file.path ( PROJHOME , "Output" , "Statistics" , "models")
-files= list.files(fold)
-par( mfrow = c(4,2))
-par( mar = c(2,2,2,2))
-for ( i in 1:8){
-  #i=1
-  load( file.path(fold, files[i]))
-  qqnorm(residuals(model), main=i)
-  qqline(residuals(model))
-}
 
-```
-
-## DESCRIPTIVES
-
-```{R}
-median ( d$speed.var[d$condition == "p"], na.rm=T)
-median ( d$speed.var[d$condition == "c"], na.rm=T)
-
-median ( d$centrip[d$condition == "p"], na.rm=T)
-median ( d$centrip[d$condition == "c"], na.rm=T)
-
-median( dat$speed[ dat$condition == "p" & dat$small.big == "b"],na.rm=T)
-median( dat$speed[ dat$condition == "p" & dat$small.big == "s"],na.rm=T)
-
-median( dat$speed[ dat$condition == "c" & dat$small.big == "b"],na.rm=T)
-median( dat$speed[ dat$condition == "c" & dat$small.big == "s"],na.rm=T)
-```
 
 
