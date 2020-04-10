@@ -1094,47 +1094,11 @@ for ( i in 9:length(files)){
     k = k+1
   }
 }
+fission.df = as.data.frame(fission.data)
+fission.df$fission = as.numeric(as.character(fission.df$fission))
 
 
-
-save ( fission.df , file = file.path (PROJHOME , "Figures", "FigureData" , "fission.rda"))
-```
-
-```{R}
-# housekeeping
-rm(list= ls())
-#source(file.path(PROJHOME, "source", "source.r"))
-
-
-# files/folders
-fold = file.path( PROJHOME , "Output" , "DataRemovedOutliers")
-files = list.files(fold)
-spl = str_split_fixed(files,"\\.",12)
-
-# empty objects 
-d2cdat = matrix( NA, 0,3)
-group.size = vector()
-
-# looop
-for ( i in 9:length(files)){
-  # i = 9
-  
-  # data
-  load ( file.path(fold, files[i]))
-  data = data.list[[1]]
-  g.size = dim(data)[[3]]
-  
-  dist2cent = d2c( data)
-  flock.size = apply( dist2cent, 1, function(x){ length(which(!is.na(x)))})
-  
-
-  group.size = c(group.size ,rep(flock.size,g.size))
-  
-  # print
-  print(i)
-}
-insta.grp.size = group.size
-save( insta.grp.size, file= file.path(PROJHOME , "smaller-dataframes-for-git", "insta-grp-size.rda"))
+save ( fission.df , file = file.path (PROJHOME , "smaller-dataframes-for-git", "fission.rda"))
 ```
 
 # Descriptives. Exact numbers of each pigeon, condition, 

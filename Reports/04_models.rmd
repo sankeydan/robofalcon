@@ -29,11 +29,11 @@ source( file.path(PROJHOME , "source", "source.r"))
 d = dat[sam9,] # subsample every 9 datapoints to correct for autocorrelation. See supplemental material. 
 
 # REMOVE VARIABLES NOT OF INTEREST TO THE MODEL
-d = d[,vars.nofalc]
+d = d[,c("diff_head", "condition","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d = d[complete.cases(d),]
 
 # RUN MODEL
-lmm1 = lme( diff_head ~
+lmm0 = lme( diff_head ~
               condition *attract*dist2cent +
               condition *align*dist2cent +
               cross.wind +
@@ -44,12 +44,15 @@ lmm1 = lme( diff_head ~
                              small.big =~1), data = d, na.action = "na.fail" )
 
 # DIAGNOSTICS
-diagnostics.plot(lmm1 )
-summary(lmm1)
+diagnostics.plot(lmm0 )
+summary(lmm0)
 
 # SAVE
-save.mixed.model( lmm1 , d, "Turn-angle-all.csv") # look at this function in folder /R to see all output statistics, or refer to supplemental Table S4 where they are all pasted. 
+save.mixed.model( lmm0 , d, "00_Turn-angle-all.csv") # look at this function in folder /R to see all output statistics, or refer to supplemental Table S4 where they are all pasted. 
 ```
+
+The qq plot and residual distributions are off. This is due to the inclusion of straight line flight. See supplemental and the below model for correction
+
 
 # Model 1.1. Turning angles after removing straight line flight. See supplemental for validation of this approach. Hint: there are no differences in the direction or significance of the statistics. These results are reported in the main text
 
@@ -65,20 +68,9 @@ library(EMAtools)
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
 
-#housekeeping
-rm(list = ls())
-
-# libraries
-library(ggplot2)
-library(nlme)
-library(EMAtools)
-
-# LOAD DATA and other variables
-source( file.path(PROJHOME , "source", "source.r"))
-
 # SUBSET DATA
 d = dat[sam9,]
-d = d[,c(vars.nofalc)]
+d = d[,c("diff_head_sharp","condition","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d = d[complete.cases(d),]
 
 # MODEL
@@ -116,7 +108,7 @@ source( file.path(PROJHOME , "source", "source.r"))
 
 # SUBSET DATA
 d.coh = dat.coh[sam9,]
-d.coh = d.coh[,names(d.coh) %in% c( vars.nofalc)]
+d.coh = d.coh[,names(d.coh) %in% c("diff_head_sharp","condition","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d.coh = d.coh[complete.cases(d.coh),]
 
 # MODEL
@@ -154,7 +146,7 @@ source( file.path(PROJHOME , "source", "source.r"))
 
 # SUBSET - ALL VARIABLES - so now including FALCON
 d = dat[sam9,]
-d = d[,vars]
+d = d[,c("turn2falchead" , "turn2falcpos", "diff_head_sharp","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d = d[complete.cases(d),]
 
 # MODEL
@@ -192,7 +184,7 @@ library(EMAtools)
 
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
-load(file.path(PROJHOME,"output", "smaller-dataframes-for-git" , "Speedvardat.rda"))
+load(file.path(PROJHOME,"smaller-dataframes-for-git" , "Speedvardat.rda"))
 dat$speed.var = speed.vars
 
 # SUBSET
@@ -243,7 +235,7 @@ source( file.path(PROJHOME , "source", "source.r"))
 
 # subsample
 d = dat[sam6,]
-d = d[,vars.nofalc]
+d = d[,c("condition", "centrip", "small.big","cross.wind", "support.wind", "group.num", "pigeon", "unique.flight")]
 
 # cut off - See supplemental
 d$centrip [d$centrip < 0.01] = NA
@@ -295,7 +287,7 @@ source( file.path(PROJHOME , "source", "source.r"))
 
 # SUBSAMPLE
 d = dat.coh[sam24,]
-d = d[,vars.nofalc]
+d = d[,c("condition", "speed", "small.big","cross.wind", "support.wind", "group.num", "pigeon", "unique.flight")]
 d$speed[d$speed> 35] = NA # See supplemental
 d$speed[d$speed< 5]  = NA
 d = d[complete.cases(d),]
@@ -336,7 +328,7 @@ dat.coh$insta.grp.size = insta.grp.size
 
 # SUBSAMPLE
 d = dat.coh[sam27,]
-d = d[,c(vars.nofalc, "insta.grp.size")]
+d = d[,c( "insta.grp.size", "dist2cent", "condition", "cross.wind", "support.wind", "group.num", "unique.flight", "pigeon")]
 d = d[complete.cases(d),]
 
 # MODEL
@@ -372,7 +364,7 @@ dat.coh$insta.grp.size = insta.grp.size
 
 # SUBSAMPLE
 d = dat.coh[sam26,]
-d = d[,c(vars.nofalc, "insta.grp.size", "nn1dist")]
+d = d[,c( "insta.grp.size", "nn1dist", "condition", "cross.wind", "support.wind", "group.num", "unique.flight", "pigeon")]
 d$nn1dist[d$nn1dist > 10] = NA # See supplemental for validation
 d = d[complete.cases(d),]
 
@@ -418,18 +410,19 @@ library(robofalcon)
 
 # LOAD DATA 
 load( file.path(PROJHOME , "smaller-dataframes-for-git", "fission.rda"))
+fission.df$prop.separated = fission.df$fission # Fission means something else in this paper. Please ignore the use of the term here
 
 # MODEL
-lmm1 = lme( fission ~
+lmm9 = lme( prop.separated ~
               condition * flock.size 
             , random = list( id=~1)
             , data = fission.df)
 
 # Summary table
-summary(lmm1)
+summary(lmm9)
 
 # Save
-save.mixed.model (lmm1,fission.df, "09_fission.csv")
+save.mixed.model (lmm9,fission.df, "09_proportion separated.csv")
 ```
 
 # MODEL 10. Conflict scenarios
@@ -455,11 +448,11 @@ aep = which(ts.acf$acf < conf.lim)[1]
 
 # SUBSAMPLE
 sam = seq(1,nrow(dat.con),aep)
-d.con = dat.con[sam,c(vars,"biased.cent","dist2pred")]
+d.con = dat.con[sam,c("biased.cent","dist2pred","small.big","pigeon","unique.flight", "group.num")]
 d.con = d.con[complete.cases(d.con),]
 
 # MODEL
-lmm10 = MASS::glmmPQL( biased.cent~
+mod10 = MASS::glmmPQL( biased.cent~
                         dist2pred * small.big
                       , random = list( pigeon=~1,unique.flight =~1,
                                        group.num = ~1),
@@ -467,10 +460,10 @@ lmm10 = MASS::glmmPQL( biased.cent~
                       na.action = "na.fail" )
 
 # Summary table
-summary(lmm10)
+summary(mod10)
 
 # Save
-save.mixed.model(lmm9 , d, "10_conflict.csv")
+save.mixed.model(mod10 , d.con, "10_conflict.csv")
 ```
 
 # MODEL 11. No conflict
@@ -496,11 +489,11 @@ aep = which(ts.acf$acf < conf.lim)[1]
 sam = seq(1,nrow(dat.nocon),aep)
 
 # SUBSET
-d.con = dat.nocon[sam,c(vars,"biased.cent","dist2pred")]
+d.con = dat.nocon[sam,c("biased.cent","dist2pred","small.big","pigeon","unique.flight", "group.num")]
 d.con = d.con[complete.cases(d.con),]
 
 # MODEL
-lmm10 = MASS::glmmPQL( biased.cent~
+mod11 = MASS::glmmPQL( biased.cent~
                          dist2pred * small.big
                        , random = list( pigeon=~1,unique.flight =~1,
                                         group.num = ~1),
@@ -508,57 +501,105 @@ lmm10 = MASS::glmmPQL( biased.cent~
                        na.action = "na.fail" )
 
 # Summary table
-summary(lmm10)
+summary(mod11)
 
 # Save
-save.mixed.model(lmm10 , d, "10_noconflict.csv")
+save.mixed.model(mod11 , d.con, "11_noconflict.csv")
 ```
 
-# Do pigeons differ in their selfishness? Seeing if selfish herd parameter (dir.rel.ali) is a better model with random intercepts or not will tell us. If the model with random intercepts for each pigeon is a better model, they might be more/less selfish than one another. If the AICs are similar, they are using the selfish herd parameter to a similar extent. See discussion in supplemental. 
+# MODEL 12,13,14. Fission/fusion at different sensitivity parameters, 1 second 5Hz, 2 seconds 10Hz and 3 seconds 15Hz 
+
+```{R}
+# Housekeeping
+rm(list = ls())
+
+## libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+#LOAD DATA. Make biomial 
+load( file.path(PROJHOME, "smaller-dataframes-for-git", "splitdata-minsplit-5Hz.rda" ))
+sd = sd[ -which (sd$splitornot == "nosplit"),]
+  sd = sd[ sd$condition == "p",]
+  sd = sd[(complete.cases(sd[,c("dist2pred")])),]
+  sd = sd[ !is.na(sd$splitornot),]
+  sd$binom = as.numeric(as.factor(sd$splitornot))-1 # this makes rejoin/fusion = 0 and split/fission = 1. See Fig. 4 in main text
+dat5 = sd
+load( file.path(PROJHOME, "smaller-dataframes-for-git", "splitdata-minsplit-10Hz.rda" ))
+sd = sd[ -which (sd$splitornot == "nosplit"),]
+  sd = sd[ sd$condition == "p",]
+  sd = sd[(complete.cases(sd[,c("dist2pred")])),]
+  sd = sd[ !is.na(sd$splitornot),]
+  sd$binom = as.numeric(as.factor(sd$splitornot))-1
+dat10 = sd
+load( file.path(PROJHOME, "smaller-dataframes-for-git", "splitdata-minsplit-15Hz.rda" ))
+sd = sd[ -which (sd$splitornot == "nosplit"),]
+  sd = sd[ sd$condition == "p",]
+  sd = sd[(complete.cases(sd[,c("dist2pred")])),]
+  sd = sd[ !is.na(sd$splitornot),]
+  sd$binom = as.numeric(as.factor(sd$splitornot))-1
+dat15 = sd
+
+# MODELS
+mod12 = MASS::glmmPQL( binom ~ log(dist2pred)*small.big      , random = list(pigeon=~1,group.num=~1) , family = "binomial" , data = dat5, na.action = na.omit)
+mod13 = MASS::glmmPQL( binom ~ log(dist2pred)*small.big      , random = list(pigeon=~1,group.num=~1) , family = "binomial" , data = dat10, na.action = na.omit)
+mod14 = MASS::glmmPQL( binom ~ log(dist2pred)*small.big      , random = list(pigeon=~1,group.num=~1) , family = "binomial" , data = dat15, na.action = na.omit)
+
+# summary tables
+summary(mod12)
+summary(mod13)
+summary(mod14)
+
+# save
+save.mixed.model(mod12, dat5 ,"12_fissionFusion5Hz.csv")
+save.mixed.model(mod13, dat10,"13_fissionFusion10Hz.csv")
+save.mixed.model(mod14, dat15,"14_fissionFusion15Hz.csv")
+```
+
+
+
+# MODEL 15. Do pigeons differ in their selfishness? Seeing if selfish herd parameter (dir.rel.ali) is a better model with random intercepts or not will tell us. If the model with random intercepts for each pigeon is a better model, they might be more/less selfish than one another. If the AICs are similar, they are using the selfish herd parameter to a similar extent. See discussion in supplemental. 
 
 
 ```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA 
+source( file.path(PROJHOME , "source", "source.r"))
 
 d = dat[sam9, ]
-lmm10 = lme( dir.rel.ali_sharp~
-               condition * dist2cent +
-               small.big *condition +
-               cross.wind +
-               log(dist2site)
+lmm15 = lme( dir.rel.ali_sharp~
+               condition * dist2cent 
              , random = list( unique.flight=~1, group.num = ~1, pigeon = ~1), data = d, na.action = "na.omit" )
 
-lmm10.1 = lme( dir.rel.ali_sharp~
-                 condition * dist2cent +
-                 small.big *condition +
-                 cross.wind +
-                 log(dist2site)
-               , random = list( unique.flight=~1), data = d, na.action = "na.omit" )
-AIC(lmm10)
-AIC(lmm10.1)
-diagnostics.plot(lmm10)
-summary(lmm10)
-#save.mixed.model(lmm10, d, "selfish-herd-param.csv")
-
-lmm10.1 = lme( dir.rel.ali~
-                 condition * dist2cent +
-                 small.big *condition +
-                 cross.wind +
-                 log(dist2site)
-               , random = list( unique.flight=~1, pigeon = ~1, group.num = ~1), data = d, na.action = "na.omit" )
-diagnostics.plot(lmm10.1)
-summary(lmm10.1)
-
-
+lmm15.1 = lme( dir.rel.ali_sharp~
+                 condition * dist2cent
+               , random = list( unique.flight=~1, group.num = ~1), data = d, na.action = "na.omit" )
+AIC(lmm15)
+AIC(lmm15.1)
 ```
 
-This model also shows that predator groups use more centroid attraction at higher distance to centroid.  
+```{R}
+summary(lmm15)
+```
+
+This model also shows that predator groups use more centroid attraction at higher distance to centroid. Similar to the three way interaction reported in Results (main text)
+
+# Combine all statistics into a big table
 
 ```{R}
 ########### BIG TABLE
 
 rm(list = ls())
 fold = file.path ( PROJHOME , "Output" , "Statistics" , "Tables")
-files = list.files(fold)
+files = rev(list.files(fold))
 d = read.csv( file.path(fold, files[1]))
 d$name = files[1]
 dat = d
@@ -566,14 +607,14 @@ for ( i in 1:length(files)){
   #i=1
   d = read.csv( file.path(fold, files[i]))
   d$name = files[i]
-  dat = rbind( dat, d)
+  dat = rbind( d, dat)
 }
 
-for ( i in 1:ncol(dat)){
+numer = which ( unlist(lapply( dat,class)) == "numeric")
+for ( i in numer){
   dat[,i] = round(as.numeric(as.character(dat[,i])),3)
 }
 
-dat$p.value = as.character(dat$p.value)
 folderDS(c("Output", "Statistics"))
 write.csv(dat , file = file.path ( PROJHOME, "Output", "Statistics" , "combinedstatstables.csv"))
 ```
