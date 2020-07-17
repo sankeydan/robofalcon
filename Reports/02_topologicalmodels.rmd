@@ -28,7 +28,7 @@ once for only.remaining = T, and once for = F
   rm(list = ls())
   
   # objects
-  only.remaining = F
+  only.remaining  = T
   plot2pdf = F
   
   #libraries
@@ -56,12 +56,13 @@ if( plot2pdf){
 }
 
 # plot pars
-par( mfcol = c(2,2))
+par( mfcol = c(3,2))
 par( mar = c(4,5,4,3))
 
 # empty objects 
 att.nn = rep(NA,2)
 ali.nn = rep(NA,2)
+fut.nn = rep(NA,2)
 
 # loop
 for ( k in 1:2 ){
@@ -71,17 +72,14 @@ for ( k in 1:2 ){
   dat = dat.save[dat.save$small.big == small.big[k],]
   n.nei.max = n.nei.maxs[k]
   
-  var = c("c","p", "all")
-  varname = c("Control cond.", "Predator cond.", "Combined both \n conditions")
-  arr = array(NA, c(n.nei.max,2,3),dimnames = list(NULL, c("attraction" ,"alignment"),var))
+  var = c("c","p")
+  varname = c("Control cond.", "Predator cond.")
+  arr = array(NA, c(n.nei.max,3,2),dimnames = list(NULL, c("attraction" ,"futureatt","alignment"),var))
   
-  for ( j in 1:3){
-    
-    if ( j == 3){
-      d = dat
-    } else {
-      d = dat[dat$condition == var[j],]
-    }
+  for ( j in 1:2){
+    #j=1
+    d = dat[dat$condition == var[j],]
+
     whi.cent = which(names(d) == "nn1cent")
     turn = d$diff_head
     
@@ -91,6 +89,18 @@ for ( k in 1:2 ){
       nn =  d[,(whi.cent+i-1)]
       if ( any (!is.na(nn))){
         matcent[i] = summary( lm ( turn ~ nn))$coeff[2,"t value"]
+      }
+    }
+    
+    whi.futr = which(names(d) == "nn1futr")
+    turn = d$diff_head
+    
+    matfutr = rep(NA,n.nei.max)
+    for ( i in 1:n.nei.max){
+      #i=1
+      nn =  d[,(whi.futr+i-1)]
+      if ( any (!is.na(nn))){
+        matfutr[i] = summary( lm ( turn ~ nn))$coeff[2,"t value"]
       }
     }
     
@@ -107,12 +117,14 @@ for ( k in 1:2 ){
     }
     
     arr[,"attraction",j] = matcent
+    arr[,"futureatt",j] = matfutr
     arr[,"alignment",j]  = mat
     
   }
   
-  ylim.ali = range(as.vector(arr[,"alignment",]),na.rm=T)
-  ylim.att = range(as.vector(arr[,"attraction",]),na.rm=T)
+  ylim.ali = range(as.vector(arr[,"alignment" ,c("c","p")]),na.rm=T)
+  ylim.fut = range(as.vector(arr[,"futureatt" ,c("c","p")]),na.rm=T)
+  ylim.att = range(as.vector(arr[,"attraction",c("c","p")]),na.rm=T)
   
   {
     plot(arr[,"alignment","c"], type = "o",ylab = "T value", col = "orange", xlab = "Number of neighbours",cex.lab = 1.4, main = paste("Alignment"),ylim = ylim.ali)
@@ -122,13 +134,16 @@ for ( k in 1:2 ){
     plot (arr[,"attraction","c"],type = "o",ylab = "T value", col = "orange", xlab = "Number of neighbours",cex.lab = 1.4,main = paste("Attraction"),ylim = ylim.att)
     lines(arr[,"attraction","p"],type = "o", col = "blue")
     lines( rowMeans(arr[,c("attraction"),c("c","p")]), type = "o")
-    # plot (arr[,"alignment" ,"all"],type = "o",ylab = "T value", xlab = "Number of neighbours",cex.lab = 1.4,main = paste("Alignment - combined") ,ylim = ylim.ali)
-    # 
-    # plot (arr[,"attraction","all"],type = "o",ylab = "T value", xlab = "Number of neighbours",cex.lab = 1.4,main = paste("Attraction - combined"),ylim = ylim.att)
+    
+    plot (arr[,"futureatt","c"],type = "o",ylab = "T value", col = "orange", xlab = "Number of neighbours",cex.lab = 1.4,main = paste("Attraction to neighbours' predicted future centroid"),ylim = ylim.fut)
+    lines(arr[,"futureatt","p"],type = "o", col = "blue")
+    lines( rowMeans(arr[,c("futureatt"),c("c","p")]), type = "o")
+
   }
   
   ali.nn[k] = which.max(rowMeans( arr[,"alignment" ,c("c","p")])) -1
   att.nn[k] = which.max(rowMeans( arr[,"attraction",c("c","p")])) -1
+  fut.nn[k] = which.max(rowMeans( arr[,"futureatt" ,c("c","p")])) -1
   
 }
 dat = dat.save
@@ -144,6 +159,7 @@ if ( plot2pdf){
 
 dat$align = NA
 dat$attract = NA
+dat$futatt = NA
 whi.s = which(dat$small.big == "s")
 whi.b = which(dat$small.big == "b")
 dat$align[whi.s] = dat[whi.s,(whi.head + ali.nn[1]) ]
@@ -152,9 +168,16 @@ dat$align[whi.b] = dat[whi.b,(whi.head + ali.nn[2]) ]
 dat$attract[whi.s]= dat[whi.s ,(whi.cent + att.nn[1])]
 dat$attract[whi.b]= dat[whi.b ,(whi.cent + att.nn[2])]
 
+dat$futatt[whi.s]= dat[whi.s ,(whi.futr + fut.nn[1])]
+dat$futatt[whi.b]= dat[whi.b ,(whi.futr + fut.nn[2])]
+
+print ( c( ali.nn = ali.nn+1, 
+           att.nn = att.nn+1,  
+           fut.nn = fut.nn+1))
+
 for ( i in which(is.na(dat$align))){
   #i=41200
-  x = rev(as.vector(as.numeric(dat[i, whi.cent:(whi.cent + ali.nn[2])])))
+  x = rev(as.vector(as.numeric(dat[i, whi.head:(whi.head + ali.nn[2])])))
   x2 = na.omit(x)
   if ( length(x2) > 1){
     dat$align[i] = x2[1]
@@ -168,6 +191,18 @@ for ( i in which(is.na(dat$attract))){
     dat$attract[i] = x2[1]
   }
 }
+for ( i in which(is.na(dat$futatt))){
+  #i=41200
+  x = rev(as.vector(as.numeric(dat[i, whi.futr:(whi.futr + fut.nn[2])])))
+  x2 = na.omit(x)
+  if ( length(x2) > 1){
+    dat$futatt[i] = x2[1]
+  }
+}
+
+names( dat)[c( whi.cent : (whi.futr+33) )]
+
+dat = dat [ , -c( whi.cent : (whi.futr+32) )]
 
 folderDS( c("Output", "Topological"))
 if( only.remaining){
@@ -177,3 +212,4 @@ if( only.remaining){
 }
 
 ```
+

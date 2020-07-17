@@ -5,12 +5,101 @@
 
 
 ```{R}
-# make some new folders t0 save model data
+library(robofalcon)
+# make some new folders to save model data
 folderDS( c("Output", "Statistics" , "Tables"))
 folderDS( c("Output", "Statistics" , "Models"))
 ```
 
-# Model 1. All recorded instances of diff_head, including turning and straight line flight. These results are reported in the supplemental. Table S4 in current version, labelled as "Turn angle - all data"
+# Model 1. THIS IS NOT USED AS ONE OF THE FINAL MODELS DUE TO LACK OF COHERENCE WITH PARAMETRIC ASSUMPTIONS. All recorded instances of diff_head, including turning and straight line flight. These results are reported in the supplemental. Table S4 in current version, labelled as "Turn angle - all data"
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+library(robofalcon)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+
+# SUBSET DATA
+d = dat.coh[sam9,] # subsample every 9 datapoints to correct for autocorrelation. See supplemental material. 
+
+# REMOVE VARIABLES NOT OF INTEREST TO THE MODEL
+d = d[,c("diff_head", "condition","futatt", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "study.flight", "group.num")]
+d = d[complete.cases(d),]
+
+# RUN MODEL
+lmm0 = lme( diff_head ~
+              condition *futatt+
+              condition *align +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             study.flight =~1,
+                             group.num = ~1
+                             # ,unique.flight = ~1
+                             ), data = d, na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm0 )
+summary(lmm0)
+
+# SAVE
+save.mixed.model( lmm0 , d, "00_Turn-angle-all.csv") # look at this function in folder /R to see all output statistics, or refer to supplemental Table S4 where they are all pasted. 
+```
+
+The qq plot and residual distributions are off. This is due to the inclusion of straight line flight. See supplemental and the below model for correction
+
+
+# Model 1.1. Turning angles after removing straight line flight. See supplemental for validation of this approach. These results are reported in the main text
+
+
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+library(EMAtools)
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSET DATA
+
+d.coh = dat.coh[sam9,]
+d.coh = d.coh[,names(d.coh) %in% c("diff_head_sharp","condition","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
+d.coh = d.coh[complete.cases(d.coh),]
+
+# MODEL
+lmm1 = lme( diff_head_sharp ~
+                condition *futatt+
+                condition *align +
+                cross.wind +
+                turn2home
+              , random = list( pigeon=~1,
+                               study.flight =~1,
+                               group.num = ~1
+                               #, unique.flight = ~1
+                               ), data = d.coh, na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm1)
+summary(lmm1)
+
+# SAVE
+save.mixed.model( lmm1 ,d.coh, "01_Turn-angle-sharp.csv")
+```
+
+### Model 2 - remove data from when predator was close
 
 ```{R}
 #housekeeping
@@ -26,101 +115,25 @@ library(robofalcon)
 source( file.path(PROJHOME , "source", "source.r"))
 
 # SUBSET DATA
-d = dat[sam9,] # subsample every 9 datapoints to correct for autocorrelation. See supplemental material. 
 
-# REMOVE VARIABLES NOT OF INTEREST TO THE MODEL
-d = d[,c("diff_head", "condition","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
-d = d[complete.cases(d),]
-
-# RUN MODEL
-lmm0 = lme( diff_head ~
-              condition *attract*dist2cent +
-              condition *align*dist2cent +
-              cross.wind +
-              turn2home
-            , random = list( pigeon=~1,
-                             unique.flight =~1,
-                             group.num = ~1,
-                             small.big =~1), data = d, na.action = "na.fail" )
-
-# DIAGNOSTICS
-diagnostics.plot(lmm0 )
-summary(lmm0)
-
-# SAVE
-save.mixed.model( lmm0 , d, "00_Turn-angle-all.csv") # look at this function in folder /R to see all output statistics, or refer to supplemental Table S4 where they are all pasted. 
-```
-
-The qq plot and residual distributions are off. This is due to the inclusion of straight line flight. See supplemental and the below model for correction
-
-
-# Model 1.1. Turning angles after removing straight line flight. See supplemental for validation of this approach. Hint: there are no differences in the direction or significance of the statistics. These results are reported in the main text
-
-```{R}
-#housekeeping
-rm(list = ls())
-
-# libraries
-library(ggplot2)
-library(nlme)
-library(EMAtools)
-
-# LOAD DATA and other variables
-source( file.path(PROJHOME , "source", "source.r"))
-
-# SUBSET DATA
-d = dat[sam9,]
-d = d[,c("diff_head_sharp","condition","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
-d = d[complete.cases(d),]
-
-# MODEL
-lmm1.1 = lme( diff_head_sharp ~
-                condition *attract*dist2cent +
-                condition *align*dist2cent +
-                cross.wind +
-                turn2home
-              , random = list( pigeon=~1,
-                               unique.flight =~1,
-                               group.num = ~1,
-                               small.big =~1), data = d, na.action = "na.fail" )
-
-# DIAGNOSTICS
-diagnostics.plot(lmm1.1)
-summary( lmm1.1 )
-performance::r2(lmm1.1)
-
-# SAVE
-save.mixed.model( lmm1.1 ,d, "01_Turn-angle-sharp.csv") # numbered with 01_ because this is in main manuscript
-```
-
-# MODEL 2. Cohesive flocks. These results are in main manuscript
-```{R}
-#housekeeping
-rm(list = ls())
-
-# libraries
-library(ggplot2)
-library(nlme)
-library(EMAtools)
-
-# LOAD DATA and other variables
-source( file.path(PROJHOME , "source", "source.r"))
-
-# SUBSET DATA
-d.coh = dat.coh[sam9,]
-d.coh = d.coh[,names(d.coh) %in% c("diff_head_sharp","condition","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
+d.coh = dat.coh[ is.na(dat.coh$dist2pred ) | dat.coh$dist2pred >40,]
+nrow( d.coh)/ nrow(dat.coh)
+d.coh = d.coh[sam9,]
+d.coh = d.coh[,names(d.coh) %in% c("diff_head_sharp","condition","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d.coh = d.coh[complete.cases(d.coh),]
+
 
 # MODEL
 lmm2 = lme( diff_head_sharp ~
-              condition *attract*dist2cent +
-              condition *align *dist2cent+
-              cross.wind +
-              turn2home
-            , random = list( pigeon=~1,
-                             unique.flight =~1,
-                             group.num = ~1,
-                             small.big =~1),data = d.coh, na.action = "na.fail" )
+                condition *futatt+
+                condition *align +
+                cross.wind +
+                turn2home
+              , random = list( pigeon=~1,
+                               study.flight =~1,
+                               group.num = ~1
+                               # ,unique.flight = ~1
+                               ), data = d.coh, na.action = "na.fail" )
 
 # DIAGNOSTICS
 diagnostics.plot(lmm2)
@@ -130,7 +143,10 @@ summary(lmm2)
 save.mixed.model( lmm2 ,d.coh, "02_Turn-angle-coh.csv")
 ```
 
-# MODEL 3. WITH FALCON VARIABLES. Results are reported in main manuscript
+# MODEL 3. Differences between small and large flocks? 
+
+
+
 
 ```{R}
 #housekeeping
@@ -145,22 +161,21 @@ library(EMAtools)
 source( file.path(PROJHOME , "source", "source.r"))
 
 # SUBSET - ALL VARIABLES - so now including FALCON
-d = dat[sam9,]
-d = d[,c("turn2falchead" , "turn2falcpos", "diff_head_sharp","attract", "dist2cent", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
+d = dat.coh[sam9,]
+d = d[,c("turn2falchead" , "turn2falcpos", "diff_head_sharp","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d = d[complete.cases(d),]
 
 # MODEL
 lmm3 = lme( diff_head_sharp ~
-              attract * dist2cent +
-              align * dist2cent +
+              futatt * small.big+
+              align  * small.big+
               turn2falchead +
               turn2falcpos +
               cross.wind +
               turn2home
             , random = list( pigeon=~1,
-                             unique.flight =~1,
                              group.num = ~1,
-                             small.big=~1), data = d,
+                             study.flight=~1), data = d,
             na.action = "na.fail" )
 
 # DIAGNOSTICS
@@ -431,6 +446,7 @@ save.mixed.model (lmm9,fission.df, "09_proportion separated.csv")
 #housekeeping
 rm(list = ls())
 
+
 # libraries
 library(ggplot2)
 library(nlme)
@@ -438,24 +454,28 @@ library(EMAtools)
 
 # LOAD DATA 
 source( file.path(PROJHOME , "source", "source.r"))
-load( file.path ( PROJHOME , "Output", "ConflictScen", "DatCon.rda"))
+#load( file.path ( PROJHOME , "Output", "ConflictScen", "DatCon.rda"))
 
 # Autocorrelation - different to other autocorrelation, as timesteps are already staggered. See Supplemental.
+dat.con =  dat[ dat$conflict.cent == T,]
 ts.acf <- acf(as.numeric(na.omit(dat.con$biased.cent)))
 alpha = 0.95
 conf.lim <- qnorm((1 + alpha)/2)/sqrt(ts.acf$n.used)
 aep = which(ts.acf$acf < conf.lim)[1]
 
+
 # SUBSAMPLE
 sam = seq(1,nrow(dat.con),aep)
-d.con = dat.con[sam,c("biased.cent","dist2pred","small.big","pigeon","unique.flight", "group.num")]
+d.con = dat.con[sam,c("biased.cent","dist2pred","small.big","pigeon","unique.flight", "group.num","study.flight")]
 d.con = d.con[complete.cases(d.con),]
 
 # MODEL
 mod10 = MASS::glmmPQL( biased.cent~
-                        dist2pred * small.big
+                       log(dist2pred)* small.big
                       , random = list( pigeon=~1,unique.flight =~1,
-                                       group.num = ~1),
+                                       group.num = ~1
+                                       #, study.flight = ~1
+                                       ),
                       family = "binomial", data = d.con,
                       na.action = "na.fail" )
 
@@ -465,6 +485,8 @@ summary(mod10)
 # Save
 save.mixed.model(mod10 , d.con, "10_conflict.csv")
 ```
+
+
 
 # MODEL 11. No conflict
 

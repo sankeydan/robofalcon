@@ -12,7 +12,8 @@ plot.circle = function( x0 = 10,
                         lwds = 1,
                         cexs = 1,
                         plot.dashed = T,
-                        pdlwd = 1){
+                        pdlwd = 1,
+                        colchoose = "red"){
 
   # variables
 
@@ -67,19 +68,18 @@ plot.circle = function( x0 = 10,
   sq = seq( -1, 1, length.out =  (len/2) )
   sq4 = sq[((len/4)+1):(len/2)]
   sq2 = c(-rev((1-rev(sqrt(abs(sq4))) )),0,(1-rev(sqrt(abs(sq4)))))
-
-  # plot point and line
-  sq3 = which.min( abs(cim- sq2)):
-    which.min( abs(cip- sq2))
-  mid = which.min( abs(mean-sq2))
-  lines( x2[sq3],y2[sq3],lwd =lwds)
-  points(x2[mid],y2[mid],cex =cexs)
-
+  
   # plot dashed
   if ( plot.dashed){
     lines( x2,y2,lwd = pdlwd, lty = 2)
   }
-
+  
+  # plot point and line
+  sq3 = which.min( abs(cim- sq2)):
+    which.min( abs(cip- sq2))
+  mid = which.min( abs(mean-sq2))
+  lines( x2[sq3],y2[sq3],lwd =lwds,col = colchoose)
+  points(x2[mid],y2[mid],cex =cexs)
 
   # if plot segments
   if ( plot.segments){
@@ -92,10 +92,10 @@ plot.circle = function( x0 = 10,
     sq2 = c(-rev((1-rev(sqrt(abs(sq4))) )),0,(1-rev(sqrt(abs(sq4)))))
     w.mi = which.min( abs( cim - sq2))
     segments( 10, 10, x2[w.mi],
-              y2[w.mi])
+              y2[w.mi],col = colchoose)
     w.mi = which.min( abs( cip - sq2))
     segments( 10, 10, x2[w.mi],
-              y2[w.mi])
+              y2[w.mi],col = colchoose)
   }
 }
 

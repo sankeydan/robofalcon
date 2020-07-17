@@ -4,108 +4,108 @@ nns.centroid.heading = function(  data,
                                   heads.remain,
                                   nn.name,
                                   j,
-                                  num.nei = 34,
-                                  whole.group = T ){
-
+                                  num.nei = 33, 
+                                  future.predict=T){
+  
   # VARIABLES
-
-  # num.nei = 34
-  # whole.group = T
-
+  
+  # num.nei = 33
+  
+  # Metadata
+  load ( file.path(PROJHOME , "metadata", "site-xy.rda"))
+  site.xy = site.xy-0.01
+  
   # DATA
   dat = data[,,j]
   nn.nam = nn.name[,,j]
   dims = dim(data)
   num.loop = ifelse ( num.nei > (dims[3]-1),(dims[3]-1),num.nei )
-
+  datm = cbind ( x = get_dist(dat [ , "lon"], site.xy[2],site.xy[1],site.xy[2],method="distance"),
+                 y = get_dist(site.xy[1] , dat [ ,"lat"],site.xy[1],site.xy[2],method="distance"))
+  
+  
   # LIBRARIES
   library(circular)
-
+  
   # Make main matrix
-  if ( whole.group ){
-    mat = array ( NA, c( dims[1], (num.nei+1), 2 ))
-  } else {
-    mat = array ( NA, c( dims[1],  num.nei   , 2 ))
-  }
-
+  mat = array ( NA, c( dims[1],  num.nei   , 3 ))
+  
+  
   # for each
   for ( k in 1:num.loop){
     #k=3
     neigbours = nn.nam[,1:k]
-    for ( l in 1:dims[1]){
-      #l=1
-      mat.nei = as.matrix(neigbours)
-      nei.lon = mean ( data[l,c("lon"),mat.nei[l,]], na.rm = T)
-      nei.lat = mean ( data[l,c("lat"),mat.nei[l,]], na.rm = T)
-      ang2neipos = get_heading(  data[l,"lon",j],
-                                 data[l,"lat",j],
-                                 nei.lon,
-                                 nei.lat,indivs = 2)
+    mat.nei = as.matrix(neigbours)
+    rM.lon = rep(NA,dims[1])
+    rM.lat = rep(NA,dims[1])
+    for ( n in 1:dims[1]){
+      #n=1
+      rM.lon[n] = mean ( data[n,"lon",mat.nei[n,]],na.rm = T)
+      rM.lat[n] = mean ( data[n,"lat",mat.nei[n,]],na.rm = T)
+    }
+    
+    neim = cbind ( x = get_dist(rM.lon     , site.xy[2],site.xy[1],site.xy[2],method="distance"),
+                   y = get_dist(site.xy[1] , rM.lat    ,site.xy[1],site.xy[2],method="distance"))
+    
+    for ( l in 3:dims[1]){
+      #l=4
+      
+      datmi = datm[(l-2):l,]
+      neimi = neim[(l-2):l,]
+      ta = turnang(neimi,cartesian = T)[1]
+      cd = cartesian_dist(neimi[,1],neimi[,2],hz=1,method="speed")[3]
+      gh = get_heading_cartesian(neimi[,1],neimi[,2],indivs = 1)[2]
+      head = gh+ta
+      head = ifelse ( head > pi, head-2*pi,head)
+      head = ifelse ( head < -pi,head+2*pi,head)
+      if ( !is.na(head)){
+        sq = seq(-pi,pi,length.out = 5)
+      sq[1]= -pi-.001
+        ma = max ( which(head>sq))
+      multip = t(matrix( c(-1,-1,1,-1,1,1,-1,1),2))[ma,]
+      predicted.lon = neimi[3,1] + abs(cd  * sin ( head))* multip[2]
+      predicted.lat = neimi[3,2] + abs(cd  * cos ( head))* multip[1]
+      neimi = rbind ( neimi , c(predicted.lon,  predicted.lat))
+      
+      # Insta centroid
+      ang2neipos = get_heading_cartesian(  datm[l,"x"],
+                                           datm[l,"y"],
+                                           neimi[3,1],
+                                           neimi[3,2],indivs = 2)
       turn2neipos = atan2(sin(ang2neipos-heads[l,j]),
                           cos(ang2neipos-heads[l,j]))
-
+      
+      # Predicted future centroid
+      ang2neipos = get_heading_cartesian(  datm[l,"x"],
+                                           datm[l,"y"],
+                                           neimi[4,1],
+                                           neimi[4,2],indivs = 2)
+      turn2neifuture = atan2(sin(ang2neipos-heads[l,j]),
+                             cos(ang2neipos-heads[l,j]))
+      
+      # Alignment
       nei.head = mean.circular(circular(heads)[l,mat.nei[l,]])
       turn2neihead = atan2(sin(nei.head-heads[l,j]),
                            cos(nei.head-heads[l,j]))
-
+      
       # save
       mat[l,k,1] = turn2neipos
       mat[l,k,2] = turn2neihead
-    }
-
-  }
-
-  # ADD GLOBAL CENTROID
-  if ( whole.group){
-    allgroup.pos = data.remain[,,-k]
-    allgroup.head= heads.remain[,-k]
-
-    centroid = d2c(allgroup.pos,return_centorid = T)
-
-    ang2neipos = get_heading(  data[,"lon",j],
-                               data[,"lat",j],
-                               centroid[,"lon"],
-                               centroid[,"lat"],indivs = 2)
-
-    meanheads = apply(allgroup.head,1,function(x){
-      #x = allgroup.head[1,]
-      if ( any( !is.na(x))){
-        mean.circular(circular(na.omit(x) ))
-      } else {
-        NA
+      mat[l,k,3] = turn2neifuture
       }
-    })
-
-    turn2neipos = atan2(sin(ang2neipos-heads[,j]),
-                        cos(ang2neipos-heads[,j]))
-    turn2neihead = atan2(sin(meanheads-heads[,j]),
-                         cos(meanheads-heads[l,j]))
-
-    # save
-    mat[,(num.nei+1),1] = turn2neipos
-    mat[,(num.nei+1),2] = turn2neihead
-
-
-  # manipulate
-  ret.mat = as.data.frame(cbind( mat[,,1], mat[,,2]))
-
+    }
+    
+  }
+  
+  
   # names
-  names = c(paste0( "nn", 1:num.nei, "cent"),"allcent",
-            paste0( "nn", 1:num.nei, "head"),"allhead")
+  names = c(paste0( "nn", 1:num.nei, "cent"),
+            paste0( "nn", 1:num.nei, "head"),
+            paste0( "nn", 1:num.nei, "futr"))
+  ret.mat = as.data.frame(cbind( mat[,,1], mat[,,2],mat[,,3]))
   names(ret.mat)= names
-
+  
   # return
   return(ret.mat)
-
-  } else {
-
-    # names
-    names = c(paste0( "nn", 1:num.nei, "cent"),
-              paste0( "nn", 1:num.nei, "head"))
-    ret.mat = as.data.frame(cbind( mat[,,1], mat[,,2]))
-    names(ret.mat)= names
-
-    # return
-    return(ret.mat)
-  }
+  
 }

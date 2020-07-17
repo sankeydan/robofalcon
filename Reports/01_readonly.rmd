@@ -56,8 +56,8 @@ for ( i in 1:length(files)){
   folder.p  = file.path( PROJHOME , "Output" , "tGPS")
   files.p = list.files(folder.p)
   files.f = list.files(folder.f)
-      folderDS ( c("Output", "gGPS", paste0("site-radius",site.radius) ))
-      folderDS ( c("Output", "gGPS", "pre-flight"))
+  folderDS ( c("Output", "gGPS", paste0("site-radius",site.radius) ))
+  folderDS ( c("Output", "gGPS", "pre-flight"))
   if( pfs){
     folder.out = file.path( PROJHOME , "Output" , "gGPS", "pre-flight")
   } else {
@@ -309,7 +309,7 @@ for ( i in pred.files){
 # loop
 for ( i in 1:
       length(files)){
-     # 14){
+  # 14){
   #i=17
   
   # data
@@ -393,7 +393,7 @@ for ( i in 1:
       foo =  max(na.omit(as.vector(dist.mat[whi.memb,whi.memb]))) /dims[3]
       maxdist = c(maxdist,foo)
       
-
+      
       
       #plot
       # XY = xylims(dat.metres)
@@ -406,7 +406,7 @@ for ( i in 1:
       # }
       
       
-            # save subgroup analysis
+      # save subgroup analysis
       if ( length( tb) > 1){
         cb = cbind( tb[-mainflock],spl[i,7],i,j)
         subgroups= rbind(subgroups,cb)
@@ -475,7 +475,7 @@ for (  i in 1:length(files)){
   fis = data.list[[1]]
   k = dim(fis)[1]
   
- # data with all individuals and maybe falcon
+  # data with all individuals and maybe falcon
   load( file.path(fold , files[i]))
   if( spl[i,2] == "p" ){
     dat = data.list[[1]]
@@ -493,6 +493,40 @@ for (  i in 1:length(files)){
 }
 ```
 
+## How time lagged is the falcon?
+
+```{R}
+# housekeeping
+rm(list= ls())
+
+#libraries
+library(stringr)
+
+# files/folders 
+fold = file.path(PROJHOME , "Output", "gGPS", "site-radius500")
+files = list.files(fold)
+
+# splitstring
+spl = str_split_fixed(files, "\\.", 12)
+
+# loop
+par(mfrow = c(2,2))
+for (  i in which ( spl[,2] == "p")){
+  #i=9
+  
+  # data with all individuals and  falcon
+  load( file.path(fold , files[i]))
+  
+  dat = data.list[[1]]
+  falc = data.list[[2]]
+  d2 = d2c(dat,return_centorid = T)
+  mcent = lonlat2metres(d2[,1],d2[,2])
+  mfalc = lonlat2metres(falc[,1],falc[,2])
+  lRs = try(leadRship(mcent,mfalc, window=41,plot.cor = T))
+  
+  
+}
+```
 
 # What is the autocorrelation of turning angles, speed, centr. acc,  
 
@@ -626,7 +660,7 @@ for ( i in 9:length(files)){
        median(aeps.centrip),
        median(aeps.centrip/5))
   
-    hist(aeps.d2c/5,breaks = 50,xlim =c(0,10), main = "Distance to centroid", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  hist(aeps.d2c/5,breaks = 50,xlim =c(0,10), main = "Distance to centroid", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
   a= mean(aeps.d2c)/5
   b= 0.2  
   c= round(a/b)*b
@@ -637,8 +671,8 @@ for ( i in 9:length(files)){
        mean(aeps.d2c),
        mean(aeps.d2c/5))
   
-    hist(aeps.nn1/5,breaks = 50,xlim =c(0,10), main = "Nearest neighbour distance", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
-      a= mean(aeps.nn1)/5
+  hist(aeps.nn1/5,breaks = 50,xlim =c(0,10), main = "Nearest neighbour distance", xlab = "Time (s)", col = "dark grey", cex.lab= 1.5)
+  a= mean(aeps.nn1)/5
   b= 0.2  
   c= round(a/b)*b
   abline( v = c, lty = 2)
@@ -696,17 +730,17 @@ for ( i in 9:length(files)){ # not training flights
     get_dist( x[,1],x[,2],hz = 5,method = "speed")
   })
   
-
+  
   # speed variance
   speed.var = c( apply( speeds, 1,function(x){ 
     x [ x<5 ]= NA
     x [ x>33]=NA
-      sd(x,na.rm = T)/mean(x,na.rm = T)
-    }) , rep( NA,  dims[1]*(dims[3]-1) )) # object now length of total rows
+    sd(x,na.rm = T)/mean(x,na.rm = T)
+  }) , rep( NA,  dims[1]*(dims[3]-1) )) # object now length of total rows
   
   # add to dat
   speed.vars = c(speed.vars,speed.var)
-
+  
   # takestock
   #print(paste (i , "/" , length(files)))
 }
@@ -823,7 +857,7 @@ Run this script with only.remaining.indivs = T and = F
 
 # loop
 for ( i in 9:length(files)){ # discounted earlier flights due to large differences in terrain, see Methods
-  #i=21
+  #i=10
   
   {
     # data
@@ -861,8 +895,8 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
   }
   
   for (j in 1:dims[3]){
-    #j=1
-    
+    #j=9
+    {
     # metadata
     temp.data   =md[rep(1, dims[1]),c('condition','small.big','ind.flight','wind.direct.site', 'group.num','wind.speed.site','flight.time','Date')]
     temp.data$pigeon = dimnames(data)[[3]][j]
@@ -925,7 +959,7 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
     
     # distance to home 
     temp.data$dist2home = get_dist(data[,"lon",j],data[,"lat",j],home$lon,home$lat,method = "distance")
-    
+  }
     # near neighbours 
     nn.dist = nn[[1]] 
     nn.name = nn[[3]]
@@ -935,8 +969,7 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
                                       heads.remain = heads.remain,
                                       nn.name = nn.name,
                                       j = j,
-                                      num.nei = 33,
-                                      whole.group = T )
+                                      num.nei = 33)
     temp.data = cbind( temp.data, cent.head)
     temp.data$nn1dist = nn[[2]][,j]
     
@@ -945,6 +978,7 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
     
     # big.matrix
     temp.data$unique.flight = m
+    temp.data$study.flight = i
     li[[m]] = temp.data
     m = m+1
   }
@@ -969,7 +1003,7 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
 # save
 
 if ( only.remaining.indivs){
-save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
+  save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
 } else {
   save( dat, file = file.path(PROJHOME, "gitData", "ALLrobofalcon-data.rda" ))
 }
@@ -992,11 +1026,11 @@ only.remaining.indivs = T
 
 # files/folders
 if( only.remaining.indivs ){
-load( file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
+  load( file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
 } else {
   load( file.path ( PROJHOME , "gitData", "ALLrobofalcon-data.rda"))
 }
-    
+
 # each unique bird/flight ends here.
 li = list()
 m=1
@@ -1041,7 +1075,7 @@ for ( i  in 1:(length(fli)-1)){
 
 #save
 if ( only.remaining.indivs){
-save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
+  save( dat, file = file.path(PROJHOME , "gitData", "REMrobofalcon-data.rda" ))
 } else {
   save( dat, file = file.path(PROJHOME, "gitData", "ALLrobofalcon-data.rda" ))
 }
@@ -1069,12 +1103,12 @@ head(dat)
   fold = file.path(PROJHOME, "Output", "dataremovedoutliers")
   files = list.files(fold)
   spl = str_split_fixed(files, "\\.",12)
-
+  
 }
 
 fission.data = matrix( NA, 0, 4, dimnames =  list( NULL, c("flock.size", "condition" , "id" , "fission")))
 # loop
-  k = 1
+k = 1
 for ( i in 9:length(files)){
   #i=9
   # data
@@ -1083,10 +1117,10 @@ for ( i in 9:length(files)){
   data = data.list[[1]]
   dims = dim(data)
   names = dimnames(data)[[3]]
-
+  
   for (j in 1:dims[3]){
     #j=4
-      fission.data = rbind( fission.data, rep(NA,ncol(fission.data)))
+    fission.data = rbind( fission.data, rep(NA,ncol(fission.data)))
     fission.data[k,"fission"] = length( which ( is.na ( data[,"lat",j])))/dims[1]
     fission.data[k,"id"] = names[j]
     fission.data[k,"flock.size"] = spl[i,7]
@@ -1120,7 +1154,7 @@ group.id = apply(tb, 1, which.max )
 
 # table
 cb = cbind( t(table( mat$condition,mat$pigeon, mat$small.big)[1:2,,1]),
-t(table( mat$condition,mat$pigeon, mat$small.big)[1:2,,2]))
+            t(table( mat$condition,mat$pigeon, mat$small.big)[1:2,,2]))
 cb = as.data.frame(cb)
 cb$id = rownames(cb)
 cb$group.id = group.id

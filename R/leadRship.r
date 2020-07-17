@@ -4,45 +4,61 @@
 
 # leadRship
 
-
 leadRship= function( p1,
                      p2,
-                     window = 25,
-                     cor.min = 0,
-                     sync = T,
+                     window = 11, # for now
+                     fission.dist = 100, # for now
+                     cor.min = 0, # for now
                      hz = 5,
                      plot.cor=F,
-                     method.each.time = F,
-                     ac = 10,
-                     auto.cor.test = F,
-                     auto.test.length = NULL,
-                     message = NULL){
-
+                     loess.method = F, 
+                     plot.loess = F,
+                     loess.sensitivity = 1000
+){
+  
   # Objects
-
-  # p1 = p1
-  # p2 = p2
-  # window = 25
-  # cor.min = 0.9
-  # hz = 5
-  # sync = T
+  
+  # p1 = mcent
+  # p2 = mfalc
+  # window = 11
+  # fission.dist = 50
+  # cor.min = 0
+  # hz = 1
   # plot.cor = T
-  # ac = 10
-  # method.each.time = F
-  # auto.cor.test = F
-  # auto.test.length = NULL
-
+  # loess.method = F
+  # plot.loess = T
+  # loess.sensitivity = 1000
+  
   # stop if not
   if ( length(dim(p1)) != 2 ){
-    stop( "p1 and p2 must be matrics with x and y columns")
+    stop( "p1 and p2 must be matrices with x and y columns")
   }
-
+  if ( (window %% 2) == 0){
+    stop( "window size must be odd")
+  } 
+  
+  # only output leadership if certain conditions are met
+  dist = na.omit(cartesian_dist(p1[,1],p1[,2],
+                                p2[,1],p2[,2],method = "distance"))
+  if ( length(dist)>0){
+    len = length(which ( dist < fission.dist)) /length(dist)
+    len = ifelse ( length(len) ==0, 0,len)
+  } else {
+    len = 0
+  }
+  
+  # transform
+  dist = cartesian_dist(p1[,1],p1[,2],
+                        p2[,1],p2[,2],method = "distance")
+  p1 = p1[which ( dist < fission.dist),]
+  p2 = p2[which ( dist < fission.dist),]
+  
   # More objects
   len = nrow(p1)
   wn = ceiling(window/2)
   st = wn
-  en = len - wn
-
+  en = len - wn 
+  
   # Movement per timestep , dt
   dt1 = matrix(NA, len - 1, 2)
   dt2 = matrix(NA, len - 1, 2)
@@ -50,7 +66,7 @@ leadRship= function( p1,
   dt1[,2] = p1[2:len,2] - p1[1:(len-1),2]
   dt2[,1] = p2[2:len,1] - p2[1:(len-1),1]
   dt2[,2] = p2[2:len,2] - p2[1:(len-1),2]
-
+  
   # Normalise
   norm1 = matrix(NA, len-1,2)
   norm2 = matrix(NA, len-1,2)
@@ -58,8 +74,7 @@ leadRship= function( p1,
   norm1[,2] = apply(cbind(dt1[,2], dt1[,1]), 1, function ( x) { x[1] / sqrt(x[1]^2 + x[2]^2)})
   norm2[,1] = apply(cbind(dt2[,1], dt2[,2]), 1, function ( x) { x[1] / sqrt(x[1]^2 + x[2]^2)})
   norm2[,2] = apply(cbind(dt2[,2], dt2[,1]), 1, function ( x) { x[1] / sqrt(x[1]^2 + x[2]^2)})
-
-
+  
   # pairwise correlation
   cors = matrix(NA,len-1, window)
   for ( j in 1:window){
@@ -67,21 +82,32 @@ leadRship= function( p1,
       cors[i,j] =  norm1[i,] %*% norm2[(j-wn+i),]
     }
   }
-
+  
   # leader/folower
-
   coraverage = colMeans( cors[st:en,],na.rm = T)
-
-  if(max( coraverage)< cor.min | any(is.na(coraverage)) ){
+  if(max( coraverage)< cor.min){
     leadr.colmean = NA
-    leadr.taumean = NA
-    leadr.taumed  = NA
+    ss = NA
   } else {
-
+    
+    # Using loess method? 
+    if ( loess.method){
+      x = 1:window
+      df = data.frame ( x, y = coraverage)
+      p = suppressMessages( ggplot2::qplot(x,y,data=df) + ggplot2::stat_smooth(n = (loess.sensitivity + 1)))
+      y = suppressMessages( ggplot2::ggplot_build(p)$data[[2]]$y)
+      ss = -(((loess.sensitivity/2)+1) -which.max(y)) / (loess.sensitivity/(window/hz ))
+      if( plot.loess ){
+        print(p)
+      }
+    } else {
+      ss = NA
+    }
+    
     # colmeans
     l.f = which.max(coraverage)
     leadr.colmean = -(wn - l.f) / hz
-
+    
     # tau per step
     tau.per.step = apply( cors[st:en,], 1, function(x){
       if( !any(is.na(x)) ){
@@ -90,84 +116,32 @@ leadRship= function( p1,
       }else {
         return(NA)
       }
-    })
-    # # #
-    # plot(tau.per.step,main = message)
-    # plot(abs(tau.per.step-wn)/hz )
-    # abline(h = abs(leadr.colmean))
-    #plot(coraverage)
-    # # # #
-    leadr.taumean = (mean  ( abs(tau.per.step-wn),na.rm=T))/hz
-    leadr.taumed =  (median( abs(tau.per.step-wn),na.rm=T))/hz
-  }
-
-  # METHOD EACH TIME
-  if ( method.each.time){
-    l.f = apply( cors[st:en,], 1, function(x) {
-
-      if (! any(is.na(x))){
-        if( max(x)[1] > cor.min ){
-          round(mean(which (x == max(x))))
-        } else {
-          NA
-        }} else {
-          NA
-        }
-    })
-    lead = c( rep(NA, wn-1) ,
-              ifelse ( l.f < wn, 1, ifelse( l.f > wn, -1, 0)),  # this is the key part. If below window, then leading
-              rep(NA, wn-1))
-
-    ## Autocorrelation test
-    if ( auto.cor.test){
-      auto.testR = matrix(NA, (len - auto.test.length), auto.test.length)
-      for ( j in 1:auto.test.length){
-        for ( i in st:(en-auto.test.length)){
-          auto.testR[i,j] = lead[i] == lead[i+j]
-        }
-      }
-      at = apply( auto.testR[st:(nrow(auto.testR)-wn),],2, function(x){
-        mean(as.numeric(x))})
+    }) -wn
+    
+    #plot
+    if(plot.cor){
+      timelag = ( (1-wn):(window-wn) )/hz
+      plot( coraverage~timelag, xlab = "Time lag (s)", type = "b")
     }
-
-    # remove duplicates
-    for ( i in 1:length(lead)){
-      if ( !is.na(lead[i])){
-        if( i + ac > length(lead)){
-          ac2 = length(lead)-i
-        } else {
-          ac2 = ac
-        }
-        for ( j in 1:ac2){
-          if ( !is.na(lead[i+j]) ){
-            if( lead[i] == lead[i+j]){
-              lead[i+j] = NA
-            }
-          }
-        }
-      }
-    }
-    leadr = sum(lead,na.rm = T)
+    
   }
-
-  #plot
-  if(plot.cor){
-    timelag = ((seq(1,25,1)-wn)/5)
-    par(mfrow = c(2,1))
-    plot( coraverage)
-    plot( coraverage~ timelag, ylim = c(0.5,1))
-    abline ( v = leadr.colmean, col = 2)
-    abline ( v = leadr.taumean, col = 3)
-    abline ( v = leadr.taumed , col = 4)
-    abline ( h = cor.min)
-  }
+  
+  # who is leading?
+  sl = sign(leadr.colmean)
+  print( ifelse ( sl == 1, "p1 is leading",
+           ifelse ( sl == 0, "neither are leading", "p2 is leading")))
+  
   # return objects
-  if (auto.cor.test){
-    return( list(at, leadr))
-  } else {
-    return( list( leadr.colmean, leadr.taumean, leadr.taumed))
-  }
-
-
-
+  return (list (colmean.leader = leadr.colmean, 
+                loess.leader = ss,
+                correlation.matrix = cors,
+                tau.per.step = tau.per.step,
+                coraverage= coraverage
+           
+  ))
+  
 }
+
+
+
+

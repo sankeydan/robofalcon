@@ -13,8 +13,8 @@ get_heading = function(lon1, lat1, lon2 = NULL, lat2 = NULL, indivs = 1){
 
   # objects
 
-  # lon1 = data[,1]
-  # lat1 = data[,2]
+  # lon1 = neimi[,1]
+  # lat1 = neimi[,2]
   # indivs = 1
 
   if (indivs == 1){
@@ -22,7 +22,6 @@ get_heading = function(lon1, lat1, lon2 = NULL, lat2 = NULL, indivs = 1){
     lon2 = lon1[2:length(lon1)]
     lat1 = lat1[1:length(lat2)]
     lon1 = lon1[1:length(lon2)]
-
 
     ta <- lat1
     tb <- lat2

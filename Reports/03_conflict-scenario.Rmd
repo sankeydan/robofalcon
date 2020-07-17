@@ -19,7 +19,7 @@ library( robofalcon)
 {
   load( file.path( PROJHOME , "Output" , "Topological", "REMrobofalcon-data.rda"))
   dir.rel.ali = dat$align - dat$diff_head
-  dat$sig.cent = sign( dat$attract)
+  dat$sig.cent = sign( dat$futatt)
   dat$sig.head = sign( dat$align)
   dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1) # binary conflict scenario variable. Did you turn toward centroid or away from predator
   dat$dir.rel.ali = dir.rel.ali * dat$conflict # Instanstaneous centroid attraction
@@ -34,7 +34,7 @@ library( robofalcon)
 {
   load( file.path( PROJHOME , "Output" , "Topological", "ALLrobofalcon-data.rda"))
   dir.rel.ali = dat$align - dat$diff_head
-  dat$sig.cent = sign( dat$attract)
+  dat$sig.cent = sign( dat$futatt)
   dat$sig.head = sign( dat$align)
   dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1)
   dat$dir.rel.ali = dir.rel.ali * dat$conflict
@@ -49,7 +49,7 @@ library( robofalcon)
   dat.coh$centrip = dat$centrip
 }
 
-# CONFLICT
+
 dat$sign.diff = sign(dat$diff_head)
 dat$diff_head[ abs(dat$diff_head) > 0.3] = NA # See supplemental for validation
 dat$dir.rel.ali[ abs(dat$dir.rel.ali)  > 0.3] = NA
@@ -61,18 +61,28 @@ dat.coh$diff_head_sharp = dat$diff_head_sharp
 dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
 
 
-# clockwise vs anticlockwise
-dat$sig.cent = sign( dat$attract)
+
+# CONFLICT
+dat$sig.cent = sign( dat$futatt)
+dat$sig.ali  = sign( dat$align)
 dat$sig.head = sign( -dat$turn2falchead)
 dat$sig.turn = sign( dat$diff_head)
 
-# conflict?
-dat$conflict = ( dat$sig.head != dat$sig.cent)
-con = which(dat$conflict == T)
+# only consider the half of the group closest to the falcon
+source ( file.path  (PROJHOME , "source" , "onlyHalfInConflict.r"))
+
+dat$conflict.cent = ( dat$sig.head != dat$sig.cent)
+con = which(dat$conflict.cent == T)
+dat$biased.cent = dat$sig.turn == dat$sig.cent
+dat$conflict.ali = ( dat$sig.head != dat$sig.ali)
+con = which(dat$conflict.ali == T)
+dat$biased.ali = dat$sig.turn == dat$sig.ali
 dat.con = dat[con,]
 dat.nocon = dat[-con,]
-dat.con$biased.cent=   dat.con$sig.turn ==   dat.con$sig.cent
-dat.nocon$biased.cent= dat.nocon$sig.turn == dat.nocon$sig.cent
+dat.con = dat.con  [!is.na ( dat.con$dist2predNearest),]
+dat.nocon=dat.nocon[!is.na(dat.nocon$dist2predNearest),]
+
+length ( which ( dat$conflict.ali)) / nrow(dat)
 
 # save 
 folderDS ( c ( "Output" , "FinalDataSet"))
