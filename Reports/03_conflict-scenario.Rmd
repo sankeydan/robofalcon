@@ -15,14 +15,17 @@ rm(list = ls())
 library( robofalcon)
 
 # data
-
 {
-  load( file.path( PROJHOME , "Output" , "Topological", "REMrobofalcon-data.rda"))
+  load( file.path( PROJHOME , "Output" , "Topological3", "REMrobofalcon-data.rda"))
   dir.rel.ali = dat$align - dat$diff_head
   dat$sig.cent = sign( dat$futatt)
   dat$sig.head = sign( dat$align)
   dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1) # binary conflict scenario variable. Did you turn toward centroid or away from predator
   dat$dir.rel.ali = dir.rel.ali * dat$conflict # Instanstaneous centroid attraction
+  
+  dat$sig.pred = sign( dat$turn2falchead)
+  dat$conflict.pred = ifelse( dat$sig.head != dat$sig.pred, 1,-1)
+  dat$dir.rel.pred = dir.rel.ali * dat$conflict.pred
   dat$sign.diff = sign(dat$diff_head)
   dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
   dat$pigeon = as.character(dat$pigeon)
@@ -38,6 +41,10 @@ library( robofalcon)
   dat$sig.head = sign( dat$align)
   dat$conflict = ifelse( dat$sig.head != dat$sig.cent, 1,-1)
   dat$dir.rel.ali = dir.rel.ali * dat$conflict
+  
+  dat$sig.pred = sign( dat$turn2falchead)
+  dat$conflict.pred = ifelse( dat$sig.head != dat$sig.pred, 1,-1)
+  dat$dir.rel.pred = dir.rel.ali * dat$conflict.pred
   dat$sign.diff = sign(dat$diff_head)
   dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
   dat$pigeon = as.character(dat$pigeon)
@@ -59,7 +66,6 @@ dat$diff_head_sharp[ abs(dat$diff_head_sharp) < 0.02] = NA # See supplemental fo
 dat$dir.rel.ali_sharp[ abs(dat$dir.rel.ali_sharp) < 0.02] = NA
 dat.coh$diff_head_sharp = dat$diff_head_sharp
 dat$sqrt_diff_head = dat$sign.diff * sqrt(abs(dat$diff_head))
-
 
 
 # CONFLICT
@@ -89,8 +95,8 @@ folderDS ( c ( "Output" , "FinalDataSet"))
 folderDS ( c ( "Output" , "ConflictScen"))
 save ( dat    , file = file.path ( PROJHOME , "Output", "FinalDataSet", "ALLrobofalcon-data.rda"))
 save ( dat.coh, file = file.path ( PROJHOME , "Output", "FinalDataSet", "REMrobofalcon-data.rda"))
-save ( dat.con  , file = file.path ( PROJHOME , "Output", "ConflictScen", "DatCon.rda"))
-save ( dat.nocon, file = file.path ( PROJHOME , "Output", "ConflictScen", "DatNoCon.rda"))
+save ( dat.con  , file = file.path ( PROJHOME , "Output", "ConflictScen", "DatCon.rda"          ))
+save ( dat.nocon, file = file.path ( PROJHOME , "Output", "ConflictScen", "DatNoCon.rda"        ))
 ```
 
 

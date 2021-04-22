@@ -1,0 +1,587 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+## WELCOME R USER
+
+Firstly to use this package you need to click the "Install and restart" button in the Build tab above and right. 
+
+If you don't use RStudio, I hope you know how to do this yourself in base R
+
+```{R}
+library( robofalcon) # should not produce an error
+```
+
+## Topological number of neigbours.
+
+This whole next chunk needs to be run twice, 
+
+once for only.remaining = T, and once for = F
+
+
+```{R}
+{ # skip to loop
+  
+  # housekeeping
+  rm(list = ls())
+  
+  # objects
+  only.remaining  = T
+
+  
+  #libraries
+  library(stringr)
+  
+  # variables 
+  n.nei.maxs= c(7,33) 
+  small.big = c("s","b")
+  
+  # files/folders
+  if ( only.remaining){
+    load( file.path( PROJHOME , "gitData" , "REMrobofalcon-data.rda"))
+  } else{
+    load( file.path( PROJHOME , "gitData" , "ALLrobofalcon-data.rda"))
+  }
+  
+  # data
+  dat.save = dat
+}
+
+# empty objects 
+att.nn = rep(NA,2)
+ali.nn = rep(NA,2)
+fut.nn = rep(NA,2)
+
+# loop
+for ( k in 1:2 ){
+  #k=1
+  
+  # data/variables
+  dat = dat.save[dat.save$small.big == small.big[k],]
+  n.nei.max = n.nei.maxs[k]
+  
+  var = c("c","p")
+  varname = c("Control cond.", "Predator cond.")
+  arr = array(NA, c(n.nei.max,3,2),dimnames = list(NULL, c("attraction" ,"futureatt","alignment"),var))
+  
+  for ( j in 1:2){
+    #j=1
+    d = dat[dat$condition == var[j],]
+    
+    whi.cent = which(names(d) == "nn1cent")
+    turn = d$diff_head
+    
+    matcent = rep(NA,n.nei.max)
+    for ( i in 1:n.nei.max){
+      #i=1
+      nn =  d[,(whi.cent+i-1)]
+      if ( any (!is.na(nn))){
+        matcent[i] = summary( lm ( turn ~ nn))$coeff[2,"t value"]
+      }
+    }
+    
+    whi.futr = which(names(d) == "nn1futr")
+    turn = d$diff_head
+    
+    matfutr = rep(NA,n.nei.max)
+    for ( i in 1:n.nei.max){
+      #i=1
+      nn =  d[,(whi.futr+i-1)]
+      if ( any (!is.na(nn))){
+        matfutr[i] = summary( lm ( turn ~ nn))$coeff[2,"t value"]
+      }
+    }
+    
+    whi.head = which(names(d) == "nn1head")
+    turn = d$diff_head
+    
+    mat = rep(NA,n.nei.max)
+    for ( i in 1:n.nei.max){
+      #i=1
+      nn =  d[,(whi.head+i-1)]
+      if ( any (!is.na(nn))){
+        mat[i] = summary( lm ( turn ~ nn))$coeff[2,"t value"]
+      }
+    }
+    
+    arr[,"attraction",j] = matcent
+    arr[,"futureatt",j] = matfutr
+    arr[,"alignment",j]  = mat
+    
+  }
+  
+  ylim.ali = range(as.vector(arr[,"alignment" ,c("c","p")]),na.rm=T)
+  ylim.fut = range(as.vector(arr[,"futureatt" ,c("c","p")]),na.rm=T)
+  ylim.att = range(as.vector(arr[,"attraction",c("c","p")]),na.rm=T)
+  
+ 
+  
+  ali.nn[k] = which.max(rowMeans( arr[,"alignment" ,c("c","p")])) -1
+  att.nn[k] = which.max(rowMeans( arr[,"attraction",c("c","p")])) -1
+  fut.nn[k] = which.max(rowMeans( arr[,"futureatt" ,c("c","p")])) -1
+  
+}
+dat = dat.save
+
+
+
+
+# Add alignment/ attraction to dataset
+
+
+dat$align = NA
+dat$attract = NA
+dat$futatt = NA
+whi.s = which(dat$small.big == "s")
+whi.b = which(dat$small.big == "b")
+dat$align[whi.s] = dat[whi.s,(whi.head + ali.nn[1]) ]
+dat$align[whi.b] = dat[whi.b,(whi.head + ali.nn[2]) ]
+
+dat$attract[whi.s]= dat[whi.s ,(whi.cent + att.nn[1])]
+dat$attract[whi.b]= dat[whi.b ,(whi.cent + att.nn[2])]
+
+dat$futatt[whi.s]= dat[whi.s ,(whi.futr + fut.nn[1])]
+dat$futatt[whi.b]= dat[whi.b ,(whi.futr + fut.nn[2])]
+
+print ( c( ali.nn = ali.nn+1, 
+           att.nn = att.nn+1,  
+           fut.nn = fut.nn+1))
+
+for ( i in which(is.na(dat$align))){
+  #i=41200
+  x = rev(as.vector(as.numeric(dat[i, whi.head:(whi.head + ali.nn[2])])))
+  x2 = na.omit(x)
+  if ( length(x2) > 1){
+    dat$align[i] = x2[1]
+  }
+}
+for ( i in which(is.na(dat$attract))){
+  #i=41200
+  x = rev(as.vector(as.numeric(dat[i, whi.cent:(whi.cent + att.nn[2])])))
+  x2 = na.omit(x)
+  if ( length(x2) > 1){
+    dat$attract[i] = x2[1]
+  }
+}
+for ( i in which(is.na(dat$futatt))){
+  #i=41200
+  x = rev(as.vector(as.numeric(dat[i, whi.futr:(whi.futr + fut.nn[2])])))
+  x2 = na.omit(x)
+  if ( length(x2) > 1){
+    dat$futatt[i] = x2[1]
+  }
+}
+
+names( dat)[c( whi.cent : (whi.futr+33) )]
+dat.save = dat
+dat = dat [ , -c( whi.cent : (whi.futr+32) )]
+
+folderDS( c("Output", "Topological"))
+if( only.remaining){
+  save( dat, file = file.path ( PROJHOME , "Output", "Topological", "REMrobofalcon-data.rda"))
+} else {
+  save( dat, file = file.path ( PROJHOME , "Output", "Topological", "ALLrobofalcon-data.rda"))
+}
+
+```
+
+# 2.Collision avoidance
+
+```{R}
+{ # skip to loop
+  
+  # housekeeping
+  rm(list = ls())
+  
+  # variables
+  nneis = 7
+  plott=F
+  
+  # data
+  load ( file.path ( PROJHOME , "Output", "Topological", "REMrobofalcon-data.rda") )
+  
+  # libraries 
+  library (robofalcon)
+  library (ggplot2)
+  
+  # metadata 
+  load ( file.path(PROJHOME , "metadata", "site-xy.rda"))
+  site.xy = site.xy-0.01 
+  
+  
+  # empty objects
+  towardCent = rep(NA,nneis)
+  alignNei = rep(NA,nneis)
+  awayFalc = rep(NA,nneis)
+  binary.closest = vector()
+}
+# loop by flight
+for ( i in unique(dat$study.flight)){
+  #i=9
+  
+  # data
+  {
+    d = dat [ dat$study.flight == i , ]
+    names = unique( d$pigeon)
+    n.pidge = length(names)
+    len = nrow(d) / n.pidge
+  }
+  
+  # empty object
+  d2pss = array(NA,c(len,4,n.pidge),dimnames = list(NULL,c("awayFalc", "alignNei", "towardCent","tplus1"),NULL))
+  
+  # loop by pigeon to give coords in metres. Also save decision angles, AND save dist 2 falcs to  get the order
+  {
+    pidgem = array (NA, c(len,2,n.pidge))
+    falcm = array( NA, c( len,2))
+    dec.angles = array (NA, c( len, 3, n.pidge),dimnames = list(NULL,c("awayFalc", "alignNei", "towardCent"), NULL))
+    dist2preds = matrix( NA, len , n.pidge)
+  }
+  
+  for ( j in 1:n.pidge){
+    #j=1
+    
+    # decision angles
+    pidge = d [ d$pigeon == names[j],]
+    pidgem[,,j] = cbind ( x = get_dist(pidge [ , "lon"], site.xy[2],site.xy[1],site.xy[2],method="distance"),
+                          y = get_dist(site.xy[1] , pidge[,"lat"],site.xy[1],site.xy[2],method="distance"))
+    bob = as.matrix(pidge[ ,c("turn2falchead", "align", "futatt") ])
+    dec.angles [ , , j ] = bob
+    
+    # dist 2 pred
+    dist2preds[,j] = pidge$dist2pred
+  }
+  
+  # falcon x, y
+  falcm = cbind ( x = get_dist(d$pred.lon, site.xy[2],site.xy[1],site.xy[2],method="distance"),
+                  y = get_dist(site.xy[1] ,d$pred.lat,site.xy[1],site.xy[2],method="distance"))
+  
+  # Are individuals in the half of the flock closest to the falcon?
+  binary.closest.mat = t( apply ( dist2preds , 1, function(x)x<median(x,na.rm = T)))
+  binary.closest = c(binary.closest, as.vector(binary.closest.mat))
+  
+  # Now pigeon estimates whether it will collide with nearest neighbours under any decision (turn from falc, head 2 cent, align)
+  
+  # empty object
+  mat.save = array ( NA, c(len , 3, n.pidge))
+  
+  # For each pigeon
+  for ( j in 1:n.pidge){
+    #j=1
+    
+    # nearest neighbours
+    nn = t(apply ( pidgem, 1, function(x){
+      #x = pidgem[1,,]
+      apply ( t(x) , 1, function(y){
+        cartesian_dist(y[1],y[2],t(x)[j,1],t(x)[j,2])
+      })
+    }))
+    nn.order = t(apply ( nn, 1, order))
+    
+    # empty object
+    d2ps = matrix(NA,len,4)
+    
+    # for each timestep
+    for ( l in 3:(len-1)){
+      #l=100
+      
+      
+      # Will any decision cause collision? 
+      
+      # What would the coordinates look like if deciding awayFalc, align, towardCent
+      decision.xy = matrix( NA, 3,2,dimnames = list(c("awayFalc", "alignNei", "towardCent"),c("x","y")))
+      pid = pidgem[(l-1):(l+1),,j]
+      gh = get_heading_cartesian(pid[,1],pid[,2],indivs = 1)[2]
+      ta=abs (turnang(pid,cartesian = T)[1])
+      cd = cartesian_dist(pid[,1],pid[,2],hz=1,method = "speed")[3]
+      for ( o in 1:3){
+        #o=1
+        head =  dec.angles[l,o,j]
+        #  head = ifelse(abs(head)>ta, sign(head)*ta, head )
+        head = ifelse(o == 1, -head , head)
+        head = gh + head
+        head = ifelse ( head > pi, head-2*pi,head)
+        head = ifelse ( head < -pi,head+2*pi,head)
+        multip = suppressWarnings ( t(matrix( c(-1,-1,1,-1,1,1,-1,1),2))[max ( which(head>=seq(-pi,pi+0.001,length.out = 5))),])
+        decision.xy[o,1] = pid[2,1] + abs(cd  * sin ( head))* multip[2]
+        decision.xy[o,2] = pid[2,2] + abs(cd  * cos ( head))* multip[1]
+      }
+      
+      # Distances to falc from each decision
+      d2ps[l,] = apply ( rbind( decision.xy, pidgem[(l+1),,j]),1,function(x)cartesian_dist(x[1],x[2],falcm[(l+1),"x"],falcm[(l+1),"y"]))
+      
+      # for the nneis nearest neighbours
+      nn.dist.of.dec = matrix( NA , nneis,3)
+      nei.arr = array( NA, c( 4, 2, nneis))
+      nei.predict = matrix( NA, nneis, 2)
+      nnei = ifelse ( n.pidge==7 & nneis == 7, 6,nneis)
+      
+      # loop by nth nearest neighbour
+      for ( k in 1:nnei){
+        #k=1
+        nei = pidgem[(l-2):(l+1),,nn.order[l,(k+1)] ]
+        nei.arr[,,k] = nei
+        ta = turnang(nei,cartesian = T)[1]
+        cd = cartesian_dist(nei[,1],nei[,2],hz=1,method="speed")[3]
+        gh = get_heading_cartesian(nei[,1],nei[,2],indivs = 1)[2]
+        head = gh+ta
+        head = ifelse ( head > pi, head-2*pi,head)
+        head = ifelse ( head < -pi,head+2*pi,head)
+        multip = suppressWarnings ( t(matrix( c(-1,-1,1,-1,1,1,-1,1),2))[max ( which(head>=seq(-pi,pi+0.001,length.out = 5))),])
+        nei.predict[k,1] = nei[3,1] + abs(cd  * sin ( head))* multip[2]
+        nei.predict[k,2] = nei[3,2] + abs(cd  * cos ( head))* multip[1]
+        nn.dist.of.dec[k,] = apply(decision.xy,1,function(x)cartesian_dist(x[1],x[2],nei.predict[k,1],nei.predict[k,2]))
+      }
+      
+      
+      # save distances for Supplemental analysis
+      awayFalc = rbind ( awayFalc, nn.dist.of.dec[,1])
+      alignNei = rbind ( alignNei, nn.dist.of.dec[,2])
+      towardCent = rbind( towardCent , nn.dist.of.dec[,3])
+      
+      # save min nn distance from decision, for major analyses
+      mat.save [l ,,j] = suppressWarnings( apply ( nn.dist.of.dec, 2, function (x) min(x, na.rm = T)))
+      
+      # PLOTT
+      if(plott){
+        xyss = xylims(cbind ( x = c( as.vector( nei.arr[,1,]),nei.predict[,1],decision.xy[,1],pid[,1]),
+                              y = c( as.vector( nei.arr[,2,]),nei.predict[,2],decision.xy[,2],pid[,2])))
+        plot ( nei.arr[,,1],xlim = xyss[[1]], ylim = xyss[[2]],type = "l")
+        lines( nei.arr[,,2])
+        lines(rbind( nei.arr[1:3,,1],nei.predict[1,]),col = "blue")
+        lines(rbind( nei.arr[1:3,,2],nei.predict[2,]),col = "blue")
+        if( any(!is.na(decision.xy))){
+          points(jitter(decision.xy),col = c("purple","green","orange"))
+        }
+        points(pid)
+      }
+    }
+    d2pss[,,j] = d2ps
+  }
+  
+  # Rank order and relative dist 2 pred
+  ord = array( NA, c(len, 3,n.pidge))
+  rel = array( NA, c(len, 3,n.pidge))
+  for ( j in 1:n.pidge){
+    pid = d2pss[,,j]
+    nei = d2pss[,"tplus1",-j]
+    ord[,,j] = cbind ( apply ( cbind( pid[,1],nei), 1,order.na )[1,],
+                       apply ( cbind( pid[,2],nei), 1,order.na )[1,],
+                       apply ( cbind( pid[,3],nei), 1,order.na )[1,])
+    rel[,,j] = cbind ( apply ( cbind( pid[,1],nei), 1,function(x)x[1] - mean(x[2:length(x)],na.rm=T)),
+                       apply ( cbind( pid[,2],nei), 1,function(x)x[1] - mean(x[2:length(x)],na.rm=T)),
+                       apply ( cbind( pid[,3],nei), 1,function(x)x[1] - mean(x[2:length(x)],na.rm=T)))
+  }
+  ords = plyr::adply(ord,3)
+  rels = plyr::adply(rel,3)
+  
+  # Convert and store data
+  mat.dec.nn = plyr::adply(mat.save, 3)
+  d2psss     = plyr::adply(d2pss   , 3)
+  mat.dec.nn = cbind(mat.dec.nn,d2psss)
+  if ( i == 9){
+    mat.dec.nns = mat.dec.nn
+    ordss = ords
+    relss = rels
+  } else {
+    mat.dec.nns = rbind ( mat.dec.nns, mat.dec.nn) 
+    ordss = rbind ( ordss, ords)
+    relss = rbind ( relss, rels)
+  }
+  
+  #take stock
+  print(i)
+}
+
+# GGPLOT
+df = as.data.frame ( cbind ( nndist = as.vector ( as.matrix(mat.dec.nns[,2:4])),
+                             dec = rep ( c("awayFalc", "alignNei", "towardCent"), each = nrow(mat.dec.nns))))
+df$nndist = as.numeric(  as.character( df$nndist))
+df$nndist [  is.infinite(df$nndist)] = NA
+ggplot ( df , aes ( as.factor ( dec) ,  nndist) )+
+  geom_boxplot()+
+  coord_cartesian( ylim =c(0,10))
+
+# PLOT
+df = as.data.frame ( cbind ( d2p = as.vector ( as.matrix(mat.dec.nns[,5:8])),
+                             dec = rep ( c("d2p.awayFalc", "d2p.alignNei", "d2p.towardCent", "d2p.tplus1"), each = nrow(mat.dec.nns))))
+df$d2p = as.numeric(  as.character( df$d2p))
+df$d2p [  is.infinite(df$d2p)] = NA
+ggplot ( df , aes ( as.factor ( dec) ,  d2p) )+
+  geom_boxplot()+
+  ylim (c(0,10))
+
+
+# ADD TO MAIN DATAFRAME
+names( mat.dec.nns) = c( "" , "minAwayFalc", "minAlignNei", "minTowardCent","d2p.awayFalc", "d2p.alignNei", "d2p.towardCent","d2p.tplus1")
+dat$minAwayFalc   = mat.dec.nns[,"minAwayFalc"]
+dat$minAlignNei   = mat.dec.nns[,"minAlignNei"]
+dat$minTowardCent = mat.dec.nns[,"minTowardCent"]
+dat$d2p.awayFalc  = mat.dec.nns[,"d2p.awayFalc"   ]
+dat$d2p.alignNei  = mat.dec.nns[,"d2p.alignNei"   ]
+dat$d2p.towardCent= mat.dec.nns[,"d2p.towardCent"]
+dat$d2p.tplus1    = mat.dec.nns[,"d2p.tplus1"    ]
+dat$ord.aF = ordss[,2]
+dat$ord.aN = ordss[,3]
+dat$ord.tC = ordss[,4]
+dat$rel.aF = relss[,2]
+dat$rel.aN = relss[,3]
+dat$rel.tC = relss[,4]
+
+# SAVE
+folderDS(c("Output","Topological2"))
+save( dat, file = file.path ( PROJHOME , "Output", "Topological2", "REMrobofalcon-data.rda") )
+```
+
+# SUPPLEMENTARY PLOT, 
+
+How many neighbours should be considered when calculating the minimum?
+
+```{R}
+par ( mfrow = c( 1,3 ))
+boxplot ( awayFalc  ,ylim = c(0,10))
+boxplot ( alignNei  ,ylim = c(0,10))
+boxplot ( towardCent,ylim = c(0,10))
+
+```
+
+
+
+
+# 3.  binary (closest half of flock to predator) variable
+```{R}
+# housekeeping
+rm(list = ls())
+
+# data
+load (file.path ( PROJHOME , "Output", "Topological2", "REMrobofalcon-data.rda"))
+
+# libraries 
+library (robofalcon)
+
+# empty objects
+binary.closest = vector()
+
+# loop by flight
+for ( i in unique(dat$study.flight)){
+  #i=9
+  
+  # data
+  d = dat [ dat$study.flight == i , ]
+  names = unique( d$pigeon)
+  n.pidge = length(names)
+  len = dim(d)[1]/n.pidge
+  dist2preds = matrix( NA, len , n.pidge)
+  for ( j in  1:n.pidge){
+    #j=1
+    # dist 2 pred
+    pidge = d[d$pigeon == names[j],]
+    dist2preds[,j] = pidge$dist2pred
+  }
+  
+  # Are individuals in the half of the flock closest to the falcon?
+  binary.closest.mat = t( apply ( dist2preds , 1, function(x)x<median(x,na.rm = T)))
+  binary.closest = c(binary.closest, as.vector(binary.closest.mat))
+}
+
+# Add to data
+dat$binary.closest = binary.closest
+
+# Incentive to attract? 
+dat$incentive.to.attract = F
+dat$incentive.to.attract[which ( dat$binary.closest == T & dat$ord.tC > dat$ord.aN)] = T
+#dat$incentive.to.attract[which ( dat$binary.closest == T & dat$d2p.towardCent > dat$d2p.alignNei)] = T
+table(dat$incentive.to.attract)
+
+
+# Save
+folderDS(c("Output", "Topological3"))
+save( dat, file = file.path ( PROJHOME, "Output" , "Topological3", "REMrobofalcon-data.rda"))
+```
+
+# Plot rank distance over artificial decision. Full plot see FigureScripts
+
+```{R}
+rm(list = ls())
+load(file.path ( PROJHOME , "Output", "Topological3", "REMrobofalcon-data.rda"))
+d = dat[dat$binary.closest == T,]
+d = d[!is.na(d$binary.closest),]
+colMeans(dat[,c("d2p.alignNei","d2p.towardCent","d2p.tplus1")],na.rm = T)
+colMeans(d[,c("ord.aF","ord.aN","ord.tC")],na.rm=T)
+save( d , file = file.path (PROJHOME , "Figures", "FigureData", "rankorderD2p-over-artificialDecision.rda"))
+boxplot(d[,c("ord.aF","ord.aN","ord.tC")],ylab = "Distance to predator (rank order)", xlab =""  )
+boxplot(d[d$dist2pred<2,c("ord.aF","ord.aN","ord.tC")],ylab = "Distance to predator (rank order)", xlab =""  )
+
+boxplot(d[d$dist2pred<40,c("rel.aF","rel.aN","rel.tC")],ylab = "Distance to predator (rank order)", xlab =""  )
+colMeans(d[d$dist2pred<40,c("rel.aF","rel.aN","rel.tC")],na.rm = T)
+boxplot(dat[,c("rel.tC","rel.aN")])
+#t.test(dat$d2p.towardCent,dat$r.alignNei,paired = T)
+t.test(d$rel.tC,d$rel.aN,paired=T)
+colMeans(cbind(dat$rel.tC,dat$rel.aN),na.rm = T)
+```
+
+```{R}
+
+p1 = d[,"rel.aF"]
+p2 = d[,"rel.tC"]
+p3 = d[,"rel.aN"]
+ac1 = acf(na.omit (p1),lag.max = 8000)
+ac2 = acf(na.omit (p2),lag.max = 8000)
+ac3 = acf(na.omit (p3),lag.max = 8000)
+ma = floor(mean(c( which(ac1$acf < 0.05)[1],
+which(ac2$acf < 0.05)[1],
+which(ac3$acf < 0.05)[1])))
+
+df = data.frame(d2p = c(p1,p2,p3),
+           dec = c(rep("awayFalc",length(p1)),
+                   rep("towardCent", length(p2)),
+                   rep("alignNei", length(p3))),
+           t = rep(1:length(p1),3))#
+
+df = df[complete.cases(df),]
+df2 = df[which ( df$t %in% seq(1,nrow(df),ma)),]
+
+
+library(nlme)
+library(multcomp)
+model = lme ( d2p ~ dec, random = ~1|t, data = df,method = "REML")
+summary(glht(model, linfct=mcp(dec = "Tukey")), test = adjusted(type = "bonferroni"))
+model = lme ( d2p ~ dec, random = ~1|t, data = df2,method = "REML")
+summary(glht(model, linfct=mcp(dec = "Tukey")), test = adjusted(type = "bonferroni"))
+```
+# Plot attraction to centroid over centroid decision incentive
+
+```{R}
+d = d [ d$minTowardCent > 0.5,]
+acf(na.omit(d[,"ord.aN"]),lag.max = 10000)
+acf(na.omit(d[,"ord.tC"]),lag.max = 10000)
+
+dT = dat [ dat$incentive.to.attract == T,]
+dF = dat [ dat$incentive.to.attract == F & dat$condition=="p",]
+acF = acf( na.omit ( dF$diff_head- dF$futatt),lag.max = 100)
+acT = acf( na.omit ( dT$diff_head- dT$futatt),lag.max = 100) 
+dF2 = dF [ seq ( 1, nrow(dF) , which ( acF$acf < 0.05)[1]),]
+dT2 = dT [ seq ( 1, nrow(dT) , which ( acT$acf < 0.05)[1]),]
+
+df = data.frame( diff =  c( abs( dT2$diff_head - dT2$futatt), 
+                            abs(dF2$diff_head - dF2$futatt)),
+                 incentive = c(rep ("dT" , nrow(dT2)),
+                               rep ("dF" , nrow(dF2))))
+which(df$diff>pi)
+df$diff = ifelse ( df$diff > pi, pi-(df$diff-pi),df$diff)
+
+
+boxplot( df$diff ~ df$incentive)
+ggplot(df, aes(incentive, diff))+
+  geom_boxplot()
+
+t.test ( df$diff[df$incentive=="dT"],
+         df$diff[df$incentive=="dF"])
+table(df$incentive)
+
+save ( df , file= file.path ( PROJHOME , "Figures" , "FigureData" , "SelfishIncentive.rda"))
+
+```

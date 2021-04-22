@@ -1,0 +1,238 @@
+Artificial Position manipulations. What happens when an individual chooses to head to centroid vs leave group? 
+
+
+```{R}
+library(robofalcon)
+```
+
+####1. Choosing close call distance
+####2. Artificial position manipulations
+
+#################################################################
+###########1. Choosing close call distance. ##########
+#################################################################
+
+```{R}
+#Housekeeping
+rm (list = ls())
+
+# Files/ folders
+fold = file.path(PROJHOME, "Output", "gGPS" , "site-radius500")
+fold.remain = file.path(PROJHOME, "Output", "DataRemovedOutliers")
+files = list.files(fold)
+
+# Data
+source( file.path(PROJHOME , "source", "source.r"))
+dat = dat.coh
+rownames(dat) = 1:nrow(dat)
+
+# Variables
+plott = T
+hist (dat$dist2pred,xlim = c(0,100),breaks = 1000) # less than 30 are close calls?
+```
+
+```{R}
+save.mean.centroid.att = vector()
+save.total.flights = vector()
+close.call.dists = c(10,15,20,25,30,35,40,45,50)
+for ( l in 1:length(close.call.dists)){
+  close.call.dist = close.call.dists[l]
+  tb = table (dat[ dat$dist2pred < close.call.dist,"study.flight"])
+  length( tb) 
+  save.total.flights = c(save.total.flights , length(tb))
+  close.dat = dat[ dat$dist2pred < close.call.dist & !is.na(dat$dist2pred),]
+  length( table  (close.dat$pigeon)) # all pigeons had close calls
+  hist ( table ( close.dat$pigeon)) # no extreme outliers
+  close.time.steps = as.numeric( rownames(close.dat))
+}
+```
+```{R}
+
+# Close calls in all flights ?
+for ( l in 1:length(close.call.dists)){
+  close.call.dist = close.call.dists[l]
+  tb = table (dat[ dat$dist2pred < close.call.dist,"study.flight"])
+  length( tb) 
+  save.total.flights = c(save.total.flights , length(tb))
+  close.dat = dat[ dat$dist2pred < close.call.dist & !is.na(dat$dist2pred),]
+  length( table  (close.dat$pigeon)) # all pigeons had close calls
+  hist ( table ( close.dat$pigeon)) # no extreme outliers
+  close.time.steps = as.numeric( rownames(close.dat))
+  length ( table (       dat$study.flight[ dat$condition == "p" ]))
+  length ( table ( close.dat$study.flight)) # no, we haev in x/27 flights
+  close.flights = as.numeric ( names ( table ( close.dat$study.flight)))
+  
+  ca = vector() # capture centroid attraction of nearest individual to predator
+  for ( i in close.flights){
+    #i=9
+    
+    # Data
+    load ( file.path (fold , files[i]))
+    falc = data.list[[2]]
+    load ( file.path (fold.remain , files[i]))
+    pidge = data.list[[1]]
+    nam = dimnames(pidge)[[3]]
+    
+    # Dist2pred
+    dist2pred = matrix ( dat$dist2pred [ dat$study.flight == i], ncol = length(nam))
+    
+    # plot
+    if ( plott){
+      plot ( dist2pred[,1], type = "l", ylim = range ( na.omit ( as.vector(dist2pred))))
+      abline( h = close.call.dist, lty = 2)
+      for ( j in 2:length(nam)){
+        lines ( dist2pred[,j], col = j)
+      }
+    }
+    
+    # Centroid attraction 
+    cent.att = matrix ( dat$dir.rel.ali[dat$study.flight == i], ncol = length(nam)) 
+    vec = apply ( dist2pred, 1, function( x) {
+      ifelse( min ( x, na.rm = T) < close.call.dist, which.min(x), NA)
+    })
+    
+    for ( k in 1:length(vec)){
+      ca = c( ca , cent.att[k,vec[k]])
+    }
+    
+  }
+  
+  # Hist? 
+  if ( plott){
+    hist(ca,xlim = c(-0.5,0.5), breaks = 1000)
+  }
+  
+  # save mean
+  save.mean.centroid.att = c( save.mean.centroid.att, mean(ca,na.rm = T))
+}
+
+#### Plot centroid attraction for most at risk pigeon over close call distance threshold
+plot ( save.mean.centroid.att ~ close.call.dists)
+abline( h = 0, lty = 2)
+
+# plot total saved flights
+plot ( save.total.flights ~ close.call.dists, ylim = c(0,27))
+abline ( h = 27, lty = 2)
+```
+
+
+######################################################################
+###############2. Artificial position manipulations #################
+######################################################################
+
+```{R}
+#Housekeeping 
+rm(list = ls())
+
+# Files/ folders
+fold = file.path(PROJHOME, "Output", "gGPS" , "site-radius500")
+fold.remain = file.path(PROJHOME, "Output", "DataRemovedOutliers")
+files = list.files(fold)
+
+# library
+library(robofalcon)
+
+# Variables
+plott=F
+min.avoid.dist = 0.8
+max.turn.rate  = 0.8
+
+
+# Data
+source( file.path(PROJHOME , "source", "source.r"))
+dat = dat.coh
+rownames(dat) = 1:nrow(dat)
+pred.flights = unique(dat$study.flight[dat$condition=="p"])
+
+# Script
+suppressWarnings( source(file.path (PROJHOME, "Source", "CloseCallsSource.r")  ))
+decisions = dimnames( li[[1]])[[3]]
+print ( decisions)
+
+# Save
+save ( li , file = file.path  (PROJHOME , "Output", "ArtPosManip" , "results.rda"))
+```
+
+```{R}
+rm(list= ls())
+
+library(nlme)
+library(multcomp)
+
+load ( file.path ( PROJHOME , "Output" , "ArtPosManip" , "results.rda"))
+for ( i in 1:length(li)){
+  #i=1
+  away.falc  = li[[i]][,,1,]
+  toward.cent= li[[i]][,,2,]
+  align      = li[[i]][,,3,]
+  away.falc  =plyr::adply(away.falc  ,3)
+toward.cent  =plyr::adply(toward.cent,3)
+align        =plyr::adply(align      ,3)
+
+  if( i  == 1){
+    away.falcs =  away.falc 
+    toward.cents= toward.cent
+    aligns      = align  
+  } else {
+    away.falcs = rbind (  away.falcs ,  away.falc )
+    toward.cents=rbind (  toward.cents ,  toward.cent)
+    aligns      =rbind (  aligns ,  align    )
+  }
+}
+length( na.omit( toward.cents[,"d2p"]))/
+length( na.omit( away.falcs  [,"d2p"]))
+
+wh = which ( ! is.na ( toward.cents[,"x"]) & ! is.na( away.falcs[,"x"]))
+toward.cents  = toward.cents[wh,]
+away.falcs  = away.falcs[wh,]
+aligns      = aligns[wh,]
+
+
+boxplot( cbind ( 
+            away.falcs[,"d2p"]-    away.falcs[,"group.d2p"],
+          toward.cents[,"d2p"]-  toward.cents[,"group.d2p"],
+                aligns[,"d2p"]-        aligns[,"group.d2p"],
+          away.falcs[,"d2p.normal"]- away.falcs[,"d2p.prev"] - away.falcs[,"group.d2p"])
+       , na.rm = T)
+
+
+
+
+p1=   away.falcs[,"d2p"]
+p2= toward.cents[,"d2p"]
+p3=       aligns[,"d2p"]
+
+
+mm = t ( apply ( cbind( p1, p2, p3),1, function ( x) x / mean(x)))
+head(mm)
+df = data.frame(d2p = c(mm[,1],mm[,2],mm[,3]),
+           dec = c(rep("awayFalc",length(p1)),
+                   rep("towardCent", length(p2)),
+                   rep("alignNei", length(p3))),
+           t = 1)#
+df = df[ complete.cases( df ) , ]
+wh = which(acf(mm[,1], lag.max = 1000)$acf < 0.05)[1]
+df = df[seq(1,nrow(df),wh),]
+mod = lm ( df$d2p ~ df$dec)
+model = lme ( d2p ~ dec, random = ~1|t, data = df,method = "REML")
+summary(glht(model, linfct=mcp(dec = "Tukey")), test = adjusted(type = "bonferroni"))
+nrow(df)
+
+p1=   away.falcs[,"d2p"]- away.falcs[,"group.d2p"]
+p2= toward.cents[,"d2p"]-  toward.cents[,"group.d2p"]
+p3=       aligns[,"d2p"]- aligns[,"group.d2p"]
+df = data.frame(d2p = c(p1,p2,p3),
+           dec = c(rep("awayFalc",length(p1)),
+                   rep("towardCent", length(p2)),
+                   rep("alignNei", length(p3))),
+           t = 1)#
+
+df = df[ complete.cases( df ) , ]
+wh = which(acf(p1, lag.max = 1000)$acf < 0.05)[1]
+df = df[seq(1,nrow(df),wh),]
+mod = lm ( df$d2p ~ df$dec)
+model = lme ( d2p ~ dec, random = ~1|t, data = df,method = "REML")
+summary(glht(model, linfct=mcp(dec = "Tukey")), test = adjusted(type = "bonferroni"))
+nrow(df)
+
+```

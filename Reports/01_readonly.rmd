@@ -857,7 +857,7 @@ Run this script with only.remaining.indivs = T and = F
 
 # loop
 for ( i in 9:length(files)){ # discounted earlier flights due to large differences in terrain, see Methods
-  #i=10
+  #i=9
   
   {
     # data
@@ -950,11 +950,15 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
                                       cos(falc_head-focal_head))
       # distance to falcon
       temp.data$dist2pred = get_dist(data[,"lon",j],data[,"lat",j],falc[,"lon"],falc[,"lat"], method = "distance")
+      temp.data$pred.lat      = falc[,"lat"]
+temp.data$pred.lon      = falc[,"lon"]
       
     } else {
       temp.data$turn2falcpos  = NA
       temp.data$turn2falchead = NA
-      temp.data$dist2pred = NA
+      temp.data$dist2pred     = NA
+      temp.data$pred.lat      = NA
+      temp.data$pred.lon      = NA
     }
     
     # distance to home 
@@ -970,6 +974,7 @@ for ( i in 9:length(files)){ # discounted earlier flights due to large differenc
                                       nn.name = nn.name,
                                       j = j,
                                       num.nei = 33)
+    
     temp.data = cbind( temp.data, cent.head)
     temp.data$nn1dist = nn[[2]][,j]
     

@@ -50,6 +50,7 @@ i=9
   {
     # data
     load( file.path(fold, files[i]))
+    data.list[[2]]
     load( file.path(fold.remain, files[i]))
     data.remain = data.list[[1]]
     data.all    = data.list[[2]]
@@ -125,3 +126,5 @@ i=9
     # near neighbours 
     nn.dist = nn[[1]] 
     nn.name = nn[[3]]
+    
+    

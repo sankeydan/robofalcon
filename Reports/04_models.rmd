@@ -7,8 +7,8 @@
 ```{R}
 library(robofalcon)
 # make some new folders to save model data
-folderDS( c("Output", "Statistics" , "Tables"))
-folderDS( c("Output", "Statistics" , "Models"))
+folderDS( c("Output", "Statistics" , "Tables")  )
+folderDS( c("Output", "Statistics" , "Models")  ) 
 ```
 
 # Model 1. THIS IS NOT USED AS ONE OF THE FINAL MODELS DUE TO LACK OF COHERENCE WITH PARAMETRIC ASSUMPTIONS. All recorded instances of diff_head, including turning and straight line flight. These results are reported in the supplemental. Table S4 in current version, labelled as "Turn angle - all data"
@@ -20,24 +20,24 @@ rm(list = ls())
 # libraries
 library(ggplot2)
 library(nlme)
-library(EMAtools)
+#library(dplyr)
+#library(EMAtools)
 library(robofalcon)
 
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
 
-
 # SUBSET DATA
 d = dat.coh[sam9,] # subsample every 9 datapoints to correct for autocorrelation. See supplemental material. 
 
 # REMOVE VARIABLES NOT OF INTEREST TO THE MODEL
-d = d[,c("diff_head", "condition","futatt", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "study.flight", "group.num")]
+d = d[,c("diff_head", "condition","futatt", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "study.flight", "group.num", "binary.closest")]
 d = d[complete.cases(d),]
 
 # RUN MODEL
 lmm0 = lme( diff_head ~
-              condition *futatt+
-              condition *align +
+              condition *futatt +
+              condition *align  +
               cross.wind +
               turn2home
             , random = list( pigeon=~1,
@@ -68,7 +68,9 @@ rm(list = ls())
 # libraries
 library(ggplot2)
 library(nlme)
-library(EMAtools)
+#library(EMAtools)
+
+# variables
 
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
@@ -81,8 +83,10 @@ d.coh = d.coh[complete.cases(d.coh),]
 
 # MODEL
 lmm1 = lme( diff_head_sharp ~
-                condition *futatt+
-                condition *align +
+               condition *
+              futatt+
+               condition *
+              align +
                 cross.wind +
                 turn2home
               , random = list( pigeon=~1,
@@ -99,6 +103,58 @@ summary(lmm1)
 save.mixed.model( lmm1 ,d.coh, "01_Turn-angle-sharp.csv")
 ```
 
+
+
+# Model 1.2. remove interaction terms. 
+
+
+
+```{R}
+#housekeeping
+rm(list = ls())
+
+# libraries
+library(ggplot2)
+library(nlme)
+#library(EMAtools)
+
+
+
+# LOAD DATA and other variables
+source( file.path(PROJHOME , "source", "source.r"))
+
+# SUBSET DATA
+
+d.coh = dat.coh[sam9,]
+d.coh = d.coh[,names(d.coh) %in% c("diff_head_sharp","condition","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
+d.coh = d.coh[complete.cases(d.coh),]
+
+# MODEL
+lmm1 = lme( diff_head_sharp ~
+               # condition *
+              futatt+
+               # condition *
+              align +
+                cross.wind +
+                turn2home
+              , random = list( pigeon=~1,
+                               study.flight =~1,
+                               group.num = ~1
+                               #, unique.flight = ~1
+                               ), data = d.coh, na.action = "na.fail" )
+
+# DIAGNOSTICS
+diagnostics.plot(lmm1)
+summary(lmm1)
+
+# SAVE
+save.mixed.model( lmm1 ,d.coh, "01_2_Turn-angle-sharp.csv")
+
+d.coh = d.coh[d.coh$condition == "c",]
+ggplot( d.coh, aes( y = diff_head_sharp, x = futatt))+
+  geom_smooth()+
+  xlim(c(-2,2))
+```
 ### Model 2 - remove data from when predator was close
 
 ```{R}
@@ -108,17 +164,21 @@ rm(list = ls())
 # libraries
 library(ggplot2)
 library(nlme)
-library(EMAtools)
+#library(EMAtools)
 library(robofalcon)
 
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
+
+# variables 
+collision.dist = 0.8
 
 # SUBSET DATA
 
 d.coh = dat.coh[ is.na(dat.coh$dist2pred ) | dat.coh$dist2pred >40,]
 nrow( d.coh)/ nrow(dat.coh)
 d.coh = d.coh[sam9,]
+d.coh = d.coh[which ( d.coh$minAlignNei > collision.dist & d.coh$minTowardCent > collision.dist),]
 d.coh = d.coh[,names(d.coh) %in% c("diff_head_sharp","condition","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
 d.coh = d.coh[complete.cases(d.coh),]
 
@@ -141,6 +201,8 @@ summary(lmm2)
 
 # SAVE
 save.mixed.model( lmm2 ,d.coh, "02_Turn-angle-coh.csv")
+
+
 ```
 
 # MODEL 3. Differences between small and large flocks? 
@@ -156,19 +218,27 @@ rm(list = ls())
 library(ggplot2)
 library(nlme)
 library(EMAtools)
+library(robofalcon)
 
 # LOAD DATA and other variables
 source( file.path(PROJHOME , "source", "source.r"))
 
 # SUBSET - ALL VARIABLES - so now including FALCON
-d = dat.coh[sam9,]
-d = d[,c("turn2falchead" , "turn2falcpos", "diff_head_sharp","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big")]
+d.coh = dat.coh#
+#d.coh = d.coh [d.coh$binary.closest==T,]
+#d.coh = d.coh[which ( d.coh$minAlignNei > collision.dist & d.coh$minTowardCent > collision.dist),]
+d = d.coh[sam9,]
+d = d[,c("turn2falchead" , "turn2falcpos", "diff_head_sharp","futatt", "study.flight", "align", "cross.wind" , "turn2home", "pigeon", "unique.flight", "group.num", "small.big", "binary.closest", "dist2pred")]
 d = d[complete.cases(d),]
 
 # MODEL
 lmm3 = lme( diff_head_sharp ~
-              futatt * small.big+
-              align  * small.big+
+              futatt * small.big 
+          *binary.closest
+            +
+              align  * small.big 
+          *binary.closest
+            +
               turn2falchead +
               turn2falcpos +
               cross.wind +
@@ -179,12 +249,116 @@ lmm3 = lme( diff_head_sharp ~
             na.action = "na.fail" )
 
 # DIAGNOSTICS
-diagnostics.plot(lmm3)
+  diagnostics.plot(lmm3)
 summary(lmm3)
 
 # SAVE
-save.mixed.model( lmm3 , d, "03_Turn-angle-falc.csv")
+mod = save.mixed.model( lmm3 , d, "03_Turn-angle-falc.rda")
+mod
+
+ggplot( d, aes( y = diff_head_sharp, x = futatt))+
+  geom_smooth(aes(colour = factor(binary.closest)))+
+  xlim(c(-1,1))
 ```
+
+```{R}
+d.T = d[ d$binary.closest == T,]
+
+lmm3 = lme( diff_head_sharp ~
+              futatt * small.big  +
+              align  * small.big   +
+              turn2falchead +
+              turn2falcpos +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             group.num = ~1,
+                             study.flight=~1), data = d.T,
+            na.action = "na.fail" )
+mod = save.mixed.model(lmm3, d.T,"Just_Further.rda")
+mod
+
+```
+
+```{R}
+
+d.F = d[ d$binary.closest == F,]
+
+lmm3 = lme( diff_head_sharp ~
+              futatt * small.big  +
+              align  * small.big   +
+              turn2falchead +
+              turn2falcpos +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             group.num = ~1,
+                             study.flight=~1), data = d.F,
+            na.action = "na.fail" )
+mod = save.mixed.model(lmm3, d.F,"Just_Further.rda")
+mod
+
+
+
+```
+
+```{R}
+d.40 = d[ is.na(d$dist2pred ) | d$dist2pred >40,]
+
+lmm3 = lme( diff_head_sharp ~
+              futatt * small.big 
+          *binary.closest
+            +
+              align  * small.big 
+          *binary.closest
+            +
+              turn2falchead +
+              turn2falcpos +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             group.num = ~1,
+                             study.flight=~1), data = d.40,
+            na.action = "na.fail" )
+
+summary(lmm3)
+mod =  save.mixed.model( lmm3 , d.40, "03_2_Turn-angle-falc.csv")
+ggplot( d.40, aes( y = diff_head_sharp, x = futatt))+
+  geom_smooth(aes(colour = factor(binary.closest)))+
+  xlim(c(-1,1))
+mod
+
+```
+
+
+```{R}
+d.40 = d[ is.na(d$dist2pred ) | d$dist2pred >40,]
+
+lmm3 = lme( diff_head_sharp ~
+              futatt * small.big 
+          *binary.closest
+            +
+              align  * small.big 
+          *binary.closest
+            +
+              turn2falchead +
+              turn2falcpos +
+              cross.wind +
+              turn2home
+            , random = list( pigeon=~1,
+                             group.num = ~1,
+                             study.flight=~1), data = d.40,
+            na.action = "na.fail" )
+
+summary(lmm3)
+mod =  save.mixed.model( lmm3 , d.40, "03_2_Turn-angle-falc.csv")
+ggplot( d.40, aes( y = diff_head_sharp, x = futatt))+
+  geom_smooth(aes(colour = factor(binary.closest)))+
+  xlim(c(-1,1))
+
+```
+
+
 
 # MODEL 4. Speed variance
 
